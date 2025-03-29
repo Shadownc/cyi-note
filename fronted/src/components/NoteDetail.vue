@@ -21,9 +21,9 @@
 
     <!-- 笔记元信息 -->
     <div class="flex flex-wrap items-center text-xs sm:text-sm text-text-tertiary dark:text-gray-400 mb-4">
-      <span>创建于: {{ formatDate(note.createdAt) }}</span>
+      <span>创建于: {{ formatDate(note.created_at) }}</span>
       <span class="mx-2">•</span>
-      <span>更新于: {{ formatDate(note.updatedAt, true) }}</span>
+      <span>更新于: {{ formatDate(note.updated_at, true) }}</span>
     </div>
 
     <!-- 笔记标签 -->
@@ -83,25 +83,63 @@ const contentRef = ref(null);
 
 // 格式化日期
 const formatDate = (dateString, shortFormat = false) => {
-  const date = new Date(dateString);
+  console.log('NoteDetail 格式化日期，原始值:', dateString);
   
-  // 在移动端使用更简短的日期格式
-  if (shortFormat && window.innerWidth < 640) {
+  if (!dateString) {
+    console.warn('日期字符串为空或无效');
+    return '无日期';
+  }
+  
+  // 尝试修复日期格式
+  let fixedDateString = dateString;
+  if (typeof dateString === 'string' && dateString.includes('T')) {
+    // 确保日期字符串有Z或时区
+    if (!dateString.includes('Z') && !dateString.includes('+')) {
+      fixedDateString = dateString + 'Z';
+    }
+  }
+  
+  const date = new Date(fixedDateString);
+  console.log('NoteDetail 转换后的日期对象:', date);
+  
+  if (isNaN(date.getTime())) {
+    console.warn('日期解析失败:', dateString);
+    return '日期无效';
+  }
+  
+  try {
+    // 在移动端使用更简短的日期格式
+    if (shortFormat && window.innerWidth < 640) {
+      return date.toLocaleDateString('zh-CN', { 
+        month: 'numeric', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
     return date.toLocaleDateString('zh-CN', { 
-      month: 'numeric', 
+      year: 'numeric', 
+      month: 'short', 
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
+  } catch (e) {
+    console.error('日期格式化错误:', e);
+    
+    // 降级方案：手动格式化
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    
+    if (shortFormat && window.innerWidth < 640) {
+      return `${month}月${day}日 ${hours}:${minutes}`;
+    }
+    return `${year}年${month}月${day}日 ${hours}:${minutes}`;
   }
-  
-  return date.toLocaleDateString('zh-CN', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 };
 
 // 自定义Markdown渲染器，添加复制按钮到代码块

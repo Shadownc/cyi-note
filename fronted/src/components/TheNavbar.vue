@@ -43,7 +43,7 @@
           <ThemeSettings />
           
           <!-- 用户菜单 -->
-          <div class="relative ml-3" v-if="isAuthenticated">
+          <div class="relative ml-3 user-menu-container" v-if="isAuthenticated">
             <button 
               @click="toggleUserMenu"
               class="flex items-center text-white hover:bg-primary-800 px-3 py-2 rounded-md focus:outline-none"
@@ -201,14 +201,16 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import ThemeSettings from './ThemeSettings.vue';
+import { useUserStore } from '@/stores/user';
 
 const router = useRouter();
+const userStore = useUserStore();
 const mobileMenuOpen = ref(false);
 const userMenuOpen = ref(false);
 
-// 用户认证状态
-const isAuthenticated = ref(false);
-const username = ref('');
+// 用户认证状态使用Pinia store
+const isAuthenticated = computed(() => userStore.isAuthenticated);
+const username = computed(() => userStore.user?.username || '');
 const userInitials = computed(() => {
   return username.value ? username.value.charAt(0).toUpperCase() : '';
 });
@@ -230,43 +232,19 @@ const toggleUserMenu = () => {
 
 // 退出登录
 const logout = () => {
-  localStorage.removeItem('user');
-  isAuthenticated.value = false;
+  userStore.logout();
   userMenuOpen.value = false;
-  router.push('/login');
 };
 
-// 检查用户登录状态
-const checkAuth = () => {
-  const user = localStorage.getItem('user');
-  if (user) {
-    const userData = JSON.parse(user);
-    isAuthenticated.value = true;
-    username.value = userData.username;
-  } else {
-    isAuthenticated.value = false;
-    username.value = '';
-  }
-};
-
-// 初始化时检查用户登录状态
+// 关闭点击外部区域时关闭用户菜单
 onMounted(() => {
-  checkAuth();
-  
-  // 点击外部关闭用户菜单
   document.addEventListener('click', (e) => {
-    const userMenu = document.querySelector('.relative.ml-3');
-    if (userMenu && !userMenu.contains(e.target) && userMenuOpen.value) {
+    const userMenu = document.querySelector('.user-menu-container');
+    if (userMenuOpen.value && userMenu && !userMenu.contains(e.target)) {
       userMenuOpen.value = false;
     }
   });
 });
-
-// 监听路由变化，关闭菜单
-watch(() => router.currentRoute.value, () => {
-  mobileMenuOpen.value = false;
-  checkAuth();
-}, { deep: true });
 </script>
 
 <style scoped>

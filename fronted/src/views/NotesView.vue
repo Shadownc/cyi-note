@@ -174,146 +174,37 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import NoteCard from '@/components/NoteCard.vue';
 import NoteListItem from '@/components/NoteListItem.vue';
+import { useNotesStore } from '@/stores/notes';
+import { useTagsStore } from '@/stores/tags';
+import { storeToRefs } from 'pinia';
 
-// 模拟更多数据 - 实际应用中会从API获取
-const notes = ref([
-  {
-    id: 1,
-    title: "Vue.js 学习笔记",
-    content: "# Vue.js 基础\n\nVue.js 是一套用于构建用户界面的**渐进式框架**。\n\n## 组件化开发\n\nVue 组件包含三个部分：\n\n- template（模板）\n- script（脚本）\n- style（样式）\n\n```js\nconst app = Vue.createApp({\n  data() {\n    return {\n      message: 'Hello Vue!'\n    }\n  }\n})\n```",
-    createdAt: "2023-01-15T10:30:00Z",
-    updatedAt: "2023-01-16T14:20:00Z",
-    tags: [
-      { id: 1, name: "前端" },
-      { id: 2, name: "Vue" }
-    ]
-  },
-  {
-    id: 2,
-    title: "JavaScript 异步编程",
-    content: "# JavaScript 异步编程\n\n异步编程是 JavaScript 中的重要概念。\n\n## Promise\n\nPromise 是一种处理异步操作的对象，代表了一个最终可能成功或失败的操作及其结果值。\n\n```js\nconst promise = new Promise((resolve, reject) => {\n  setTimeout(() => {\n    resolve('成功!');\n  }, 1000);\n});\n\npromise.then(value => {\n  console.log(value); // 成功!\n});\n```\n\n## Async/Await\n\n`async/await` 是基于 Promise 的语法糖，使异步代码更容易编写和理解。",
-    createdAt: "2023-02-10T08:15:00Z",
-    updatedAt: "2023-02-12T11:45:00Z",
-    tags: [
-      { id: 1, name: "前端" },
-      { id: 3, name: "JavaScript" }
-    ]
-  },
-  {
-    id: 3,
-    title: "Docker 容器化部署",
-    content: "# Docker 容器化部署\n\nDocker 是一个开源的应用容器引擎，让开发者可以打包他们的应用以及依赖包到一个可移植的容器中。\n\n## 基本概念\n\n- 镜像（Image）\n- 容器（Container）\n- 仓库（Repository）\n\n## 常用命令\n\n```bash\n# 构建镜像\ndocker build -t myapp .\n\n# 运行容器\ndocker run -p 8080:80 myapp\n```",
-    createdAt: "2023-03-05T15:20:00Z",
-    updatedAt: "2023-03-07T09:30:00Z",
-    tags: [
-      { id: 4, name: "后端" },
-      { id: 5, name: "Docker" }
-    ]
-  },
-  {
-    id: 4,
-    title: "React Hooks 详解",
-    content: "# React Hooks 详解\n\nReact Hooks 是 React 16.8 引入的新特性，它可以让你在不编写 class 的情况下使用 state 和其他 React 特性。\n\n## useState\n\n```jsx\nimport React, { useState } from 'react';\n\nfunction Example() {\n  const [count, setCount] = useState(0);\n\n  return (\n    <div>\n      <p>You clicked {count} times</p>\n      <button onClick={() => setCount(count + 1)}>\n        Click me\n      </button>\n    </div>\n  );\n}\n```",
-    createdAt: "2023-04-05T10:20:00Z",
-    updatedAt: "2023-04-07T14:30:00Z",
-    tags: [
-      { id: 1, name: "前端" },
-      { id: 6, name: "React" }
-    ]
-  },
-  {
-    id: 5,
-    title: "Git 工作流指南",
-    content: "# Git 工作流指南\n\nGit 是一个分布式版本控制系统，用于跟踪文件的更改并协调多人的工作。\n\n## 常用命令\n\n```bash\n# 创建新分支\ngit checkout -b feature/new-feature\n\n# 添加修改\ngit add .\n\n# 提交修改\ngit commit -m \"Add new feature\"\n\n# 推送到远程\ngit push origin feature/new-feature\n```",
-    createdAt: "2023-05-15T09:30:00Z",
-    updatedAt: "2023-05-16T11:20:00Z",
-    tags: [
-      { id: 7, name: "工具" },
-      { id: 8, name: "Git" }
-    ]
-  },
-  {
-    id: 6,
-    title: "Python 数据分析入门",
-    content: "# Python 数据分析入门\n\nPython 是数据分析领域的主流语言，与 Pandas, NumPy, Matplotlib 等库一起使用非常强大。\n\n## Pandas 基础\n\n```python\nimport pandas as pd\n\n# 创建 DataFrame\ndf = pd.DataFrame({\n    'A': [1, 2, 3],\n    'B': [4, 5, 6],\n    'C': [7, 8, 9]\n})\n\n# 数据操作\nprint(df.describe())\n```",
-    createdAt: "2023-06-20T14:15:00Z",
-    updatedAt: "2023-06-22T10:30:00Z",
-    tags: [
-      { id: 4, name: "后端" },
-      { id: 9, name: "Python" },
-      { id: 10, name: "数据分析" }
-    ]
-  }
-]);
+// 使用Pinia store
+const notesStore = useNotesStore();
+const tagsStore = useTagsStore();
 
-const tags = ref([
-  { id: 1, name: "前端" },
-  { id: 2, name: "Vue" },
-  { id: 3, name: "JavaScript" },
-  { id: 4, name: "后端" },
-  { id: 5, name: "Docker" },
-  { id: 6, name: "React" },
-  { id: 7, name: "工具" },
-  { id: 8, name: "Git" },
-  { id: 9, name: "Python" },
-  { id: 10, name: "数据分析" }
-]);
+// 从store中获取状态
+const { notes, totalNotes, isLoading: loading, currentPage, pageSize, activeTag, searchKeyword } = storeToRefs(notesStore);
+const { tags } = storeToRefs(tagsStore);
 
-const loading = ref(false);
-const searchQuery = ref('');
-const selectedTag = ref('');
+// 本地状态
 const sortBy = ref('updated_desc');
 const viewMode = ref('card'); // 'card' 或 'list'
-const currentPage = ref(1);
-const pageSize = ref(3); // 每页显示的笔记数量，从6改为3
+const selectedTag = ref('');
+const searchQuery = ref('');
 
 // 根据筛选条件过滤笔记
 const filteredNotes = computed(() => {
-  let result = notes.value;
-  
-  // 根据搜索关键词过滤
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
-    result = result.filter(note => 
-      note.title.toLowerCase().includes(query) || 
-      note.content.toLowerCase().includes(query)
-    );
-  }
-  
-  // 根据标签过滤
-  if (selectedTag.value) {
-    result = result.filter(note => 
-      note.tags.some(tag => tag.id === Number(selectedTag.value))
-    );
-  }
-  
-  // 排序
-  result = [...result].sort((a, b) => {
-    if (sortBy.value === 'updated_desc') {
-      return new Date(b.updatedAt) - new Date(a.updatedAt);
-    } else if (sortBy.value === 'updated_asc') {
-      return new Date(a.updatedAt) - new Date(b.updatedAt);
-    } else if (sortBy.value === 'created_desc') {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    } else if (sortBy.value === 'created_asc') {
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    }
-    return 0;
-  });
-  
-  return result;
+  return notes.value;
 });
 
 // 总页数
 const totalPages = computed(() => {
-  return Math.ceil(filteredNotes.value.length / pageSize.value);
+  return Math.ceil(totalNotes.value / pageSize.value);
 });
 
 // 当前页的笔记
 const pagedNotes = computed(() => {
-  const startIndex = (currentPage.value - 1) * pageSize.value;
-  const endIndex = startIndex + pageSize.value;
-  return filteredNotes.value.slice(startIndex, endIndex);
+  return notes.value;
 });
 
 // 计算要显示的页码按钮
@@ -338,23 +229,83 @@ const pageButtons = computed(() => {
 
 // 页面跳转函数
 const goToPage = (page) => {
-  currentPage.value = page;
+  notesStore.fetchNotes(page, pageSize.value, selectedTag.value ? parseInt(selectedTag.value) : null);
   // 滚动回顶部
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// 监听筛选条件变化，重置页码
-watch([searchQuery, selectedTag, sortBy], () => {
-  currentPage.value = 1;
+// 处理搜索
+const handleSearch = () => {
+  if (searchQuery.value.trim()) {
+    notesStore.searchNotes(searchQuery.value);
+  } else {
+    notesStore.clearSearch();
+  }
+};
+
+// 处理标签选择
+const handleTagSelect = () => {
+  if (selectedTag.value) {
+    notesStore.filterByTag(parseInt(selectedTag.value));
+  } else {
+    notesStore.clearSearch();
+  }
+};
+
+// 处理排序
+const handleSortChange = () => {
+  // 更新排序条件参数并重新加载笔记
+  const params = {
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    sortBy: sortBy.value
+  };
+  
+  if (selectedTag.value) {
+    params.tagId = parseInt(selectedTag.value);
+  }
+  
+  notesStore.fetchNotes(params.page, params.pageSize, params.tagId, params.sortBy);
+};
+
+// 监听筛选条件变化
+watch([sortBy], () => {
+  handleSortChange();
 });
 
-// 模拟加载数据
-onMounted(() => {
-  loading.value = true;
-  // 模拟API请求延迟
-  setTimeout(() => {
-    loading.value = false;
-  }, 500);
+// 监听搜索输入变化
+watch([searchQuery], () => {
+  // 使用setTimeout实现简单的防抖
+  clearTimeout(searchDebounce.value);
+  searchDebounce.value = setTimeout(() => {
+    handleSearch();
+  }, 500); // 500ms防抖
+});
+
+// 监听标签选择变化
+watch([selectedTag], () => {
+  handleTagSelect();
+});
+
+// 搜索防抖定时器
+const searchDebounce = ref(null);
+
+// 初始化数据
+onMounted(async () => {
+  // 获取笔记列表
+  await notesStore.fetchNotes();
+  
+  // 获取标签列表
+  await tagsStore.fetchTags();
+  
+  // 同步本地状态和store状态
+  if (activeTag.value) {
+    selectedTag.value = activeTag.value.toString();
+  }
+  
+  if (searchKeyword.value) {
+    searchQuery.value = searchKeyword.value;
+  }
 });
 </script>
 

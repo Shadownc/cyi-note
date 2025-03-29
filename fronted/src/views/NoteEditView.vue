@@ -47,7 +47,8 @@
               <TagManager 
                 :tags="noteForm.tags" 
                 @add-tag="addTag" 
-                @remove-tag="removeTag" 
+                @remove-tag="removeTag"
+                @generate-tags="generateTags"
               />
             </div>
           </div>
@@ -94,153 +95,195 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import MarkdownEditor from '@/components/MarkdownEditor.vue';
+import { useNotesStore } from '@/stores/notes';
+import { useTagsStore } from '@/stores/tags';
+import { storeToRefs } from 'pinia';
 import TagManager from '@/components/TagManager.vue';
 
 const route = useRoute();
 const router = useRouter();
-const loading = ref(true);
+const notesStore = useNotesStore();
+const tagsStore = useTagsStore();
+
+// 从store获取状态
+const { currentNote, isLoading } = storeToRefs(notesStore);
+const { tags, isLoading: tagsLoading } = storeToRefs(tagsStore);
+
+// 本地状态
+const noteId = route.params.id ? parseInt(route.params.id) : null;
+const isNewNote = !noteId;
+const formTitle = computed(() => isNewNote ? '创建新笔记' : '编辑笔记');
+const submitting = ref(false);
 const isSaving = ref(false);
+const loading = ref(false);
+const showPreview = ref(false);
 
-// 判断是新建还是编辑
-const isNewNote = computed(() => route.params.id === 'new');
-
-// 笔记表单数据
-const noteForm = ref({
+// 表单数据
+const noteForm = reactive({
   title: '',
   content: '',
   tags: []
 });
 
-// 获取所有标签（模拟数据）
-const allTags = [
-  { id: 1, name: "前端" },
-  { id: 2, name: "Vue" },
-  { id: 3, name: "JavaScript" },
-  { id: 4, name: "后端" },
-  { id: 5, name: "Docker" }
-];
+// 标签搜索
+const tagSearchText = ref('');
+const filteredTags = computed(() => {
+  if (!tagSearchText.value) return tags.value;
+  const search = tagSearchText.value.toLowerCase();
+  return tags.value.filter(tag => tag.name.toLowerCase().includes(search));
+});
 
-// 初始化笔记数据
-const fetchNoteData = async () => {
-  loading.value = true;
-  
-  if (isNewNote.value) {
-    // 新建笔记
-    noteForm.value = {
-      title: '',
-      content: '',
-      tags: []
-    };
-  } else {
-    // 编辑现有笔记，获取数据
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 模拟笔记数据
-    const mockNotes = [
-      {
-        id: 1,
-        title: "Vue.js 学习笔记",
-        content: "# Vue.js 基础\n\nVue.js 是一套用于构建用户界面的**渐进式框架**。\n\n## 组件化开发\n\nVue 组件包含三个部分：\n\n- template（模板）\n- script（脚本）\n- style（样式）\n\n```js\nconst app = Vue.createApp({\n  data() {\n    return {\n      message: 'Hello Vue!'\n    }\n  }\n})\n```",
-        tags: [
-          { id: 1, name: "前端" },
-          { id: 2, name: "Vue" }
-        ]
-      },
-      {
-        id: 2,
-        title: "JavaScript 异步编程",
-        content: "# JavaScript 异步编程\n\n异步编程是 JavaScript 中的重要概念。\n\n## Promise\n\nPromise 是一种处理异步操作的对象，代表了一个最终可能成功或失败的操作及其结果值。\n\n```js\nconst promise = new Promise((resolve, reject) => {\n  setTimeout(() => {\n    resolve('成功!');\n  }, 1000);\n});\n\npromise.then(value => {\n  console.log(value); // 成功!\n});\n```\n\n## Async/Await\n\n`async/await` 是基于 Promise 的语法糖，使异步代码更容易编写和理解。",
-        tags: [
-          { id: 1, name: "前端" },
-          { id: 3, name: "JavaScript" }
-        ]
-      },
-      {
-        id: 3,
-        title: "Docker 容器化部署",
-        content: "# Docker 容器化部署\n\nDocker 是一个开源的应用容器引擎，让开发者可以打包他们的应用以及依赖包到一个可移植的容器中。\n\n## 基本概念\n\n- 镜像（Image）\n- 容器（Container）\n- 仓库（Repository）\n\n## 常用命令\n\n```bash\n# 构建镜像\ndocker build -t myapp .\n\n# 运行容器\ndocker run -p 8080:80 myapp\n```",
-        tags: [
-          { id: 4, name: "后端" },
-          { id: 5, name: "Docker" }
-        ]
-      }
-    ];
-    
-    const noteId = parseInt(route.params.id);
-    const note = mockNotes.find(n => n.id === noteId);
-    
-    if (note) {
-      noteForm.value = {
-        title: note.title,
-        content: note.content,
-        tags: [...note.tags] // 复制标签数组
-      };
-    } else {
-      // 笔记不存在，跳转回列表页
-      router.push('/notes');
-      return;
-    }
-  }
-  
-  loading.value = false;
-};
-
-// 添加标签
+// 添加标签到表单
 const addTag = (tag) => {
-  // 检查是否已存在该标签名
-  const existingTag = allTags.find(t => t.name.toLowerCase() === tag.name.toLowerCase());
+  // 检查标签是否已存在
+  if (!noteForm.tags.some(t => t.id === tag.id)) {
+    noteForm.tags.push(tag);
+  }
+  tagSearchText.value = '';
+};
+
+// 创建新标签
+const createTag = async () => {
+  if (!tagSearchText.value.trim()) return;
   
-  if (existingTag) {
-    // 使用现有标签
-    if (!noteForm.value.tags.some(t => t.id === existingTag.id)) {
-      noteForm.value.tags.push(existingTag);
-    }
-  } else {
-    // 创建新标签（在实际应用中，这里会调用API创建新标签）
-    const newTag = {
-      id: Date.now(), // 模拟生成ID
-      name: tag.name
-    };
-    noteForm.value.tags.push(newTag);
+  try {
+    const newTag = await tagsStore.createTag({ name: tagSearchText.value.trim() });
+    addTag(newTag);
+  } catch (error) {
+    console.error('创建标签失败:', error);
   }
 };
 
-// 移除标签
+// 从表单中移除标签
 const removeTag = (tagId) => {
-  noteForm.value.tags = noteForm.value.tags.filter(tag => tag.id !== tagId);
+  noteForm.tags = noteForm.tags.filter(tag => tag.id !== tagId);
+};
+
+// 使用AI生成标签建议
+const generateTags = async () => {
+  if (!noteForm.content.trim()) return;
+  
+  try {
+    const suggestions = await tagsStore.generateTagSuggestions(noteForm.content);
+    // 添加建议的标签
+    if (suggestions && suggestions.tags) {
+      for (const tagName of suggestions.tags) {
+        // 查找是否已存在该标签
+        let tag = tags.value.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+        
+        // 如果不存在，创建新标签
+        if (!tag) {
+          tag = await tagsStore.createTag({ name: tagName });
+        }
+        
+        // 添加标签到表单
+        addTag(tag);
+      }
+    }
+  } catch (error) {
+    console.error('生成标签建议失败:', error);
+  }
+};
+
+// 切换预览
+const togglePreview = () => {
+  showPreview.value = !showPreview.value;
 };
 
 // 保存笔记
 const saveNote = async () => {
-  if (!noteForm.value.title || !noteForm.value.content) {
-    alert('请填写标题和内容');
+  if (!noteForm.title.trim() || !noteForm.content.trim()) {
+    alert('标题和内容不能为空');
     return;
   }
   
   isSaving.value = true;
   
-  // 模拟API请求
-  await new Promise(resolve => setTimeout(resolve, 800));
-  
-  // 显示成功消息
-  alert(isNewNote.value ? '笔记创建成功！' : '笔记更新成功！');
-  
-  // 导航到笔记列表或详情页
-  if (isNewNote.value) {
-    router.push('/notes');
-  } else {
-    router.push(`/notes/${route.params.id}`);
+  try {
+    // 准备提交的数据
+    const noteData = {
+      title: noteForm.title,
+      content: noteForm.content,
+      tags: noteForm.tags.map(tag => tag.name)
+    };
+    
+    console.log('准备保存笔记数据:', noteData);
+    
+    if (isNewNote) {
+      // 创建新笔记
+      const response = await notesStore.createNote(noteData);
+      console.log('创建笔记成功，完整响应数据:', response);
+      
+      // 获取笔记ID - 适配不同格式
+      let newNoteId = null;
+      
+      if (typeof response === 'object') {
+        console.log('分析响应格式...');
+        
+        // 检查各种可能的响应格式
+        if (response.id) {
+          // 直接是笔记对象
+          console.log('找到ID在响应根级别');
+          newNoteId = response.id;
+        } else if (response.note && response.note.id) {
+          // 包含在note字段中
+          console.log('找到ID在response.note中');
+          newNoteId = response.note.id;
+        }
+        
+        console.log('提取的笔记ID:', newNoteId);
+      }
+      
+      if (!newNoteId) {
+        console.error('无法从响应中获取笔记ID，请检查API格式:', response);
+        alert('笔记已保存，但无法跳转到详情页面。请刷新笔记列表查看。');
+        router.push({ name: 'notes' });
+      } else {
+        console.log('跳转到笔记详情页:', newNoteId);
+        router.push({ name: 'note-detail', params: { id: newNoteId } });
+      }
+    } else {
+      // 更新笔记
+      console.log('更新已有笔记:', noteId);
+      const updatedNote = await notesStore.updateNote(noteId, noteData);
+      console.log('更新笔记成功:', updatedNote);
+      router.push({ name: 'note-detail', params: { id: noteId } });
+    }
+  } catch (error) {
+    console.error('保存笔记失败:', error);
+    alert('保存笔记失败: ' + (error.message || '请稍后重试'));
+  } finally {
+    isSaving.value = false;
   }
-  
-  isSaving.value = false;
 };
 
-onMounted(() => {
-  fetchNoteData();
+// 初始化数据
+onMounted(async () => {
+  loading.value = true;
+  // 加载标签列表
+  await tagsStore.fetchTags();
+  
+  // 如果是编辑现有笔记
+  if (noteId) {
+    console.log('正在加载笔记 ID:', noteId);
+    await notesStore.fetchNote(noteId);
+    
+    if (currentNote.value) {
+      console.log('成功加载笔记数据:', currentNote.value);
+      // 填充表单数据
+      noteForm.title = currentNote.value.title;
+      noteForm.content = currentNote.value.content;
+      noteForm.tags = currentNote.value.tags || [];
+    } else {
+      console.error('笔记加载失败或不存在，ID:', noteId);
+      // 笔记不存在，重定向到笔记列表
+      router.push({ name: 'notes' });
+    }
+  }
+  loading.value = false;
 });
 </script>
 

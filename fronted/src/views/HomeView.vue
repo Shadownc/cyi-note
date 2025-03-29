@@ -1,5 +1,9 @@
 <script setup>
-// 无需导入不存在的组件
+import { useUserStore } from '@/stores/user';
+
+// 获取用户状态
+const userStore = useUserStore();
+const isAuthenticated = userStore.isAuthenticated;
 </script>
 
 <template>
@@ -10,7 +14,19 @@
         一个简单易用的个人知识管理工具，帮助您整理、分类和管理您的笔记和知识。
       </p>
       <div class="mt-8">
-        <router-link to="/notes" class="btn btn-primary px-8 py-3 text-lg shadow-lg hover:shadow-xl">开始使用</router-link>
+        <router-link 
+          :to="isAuthenticated ? '/notes' : '/login'" 
+          class="btn btn-primary px-8 py-3 text-lg shadow-lg hover:shadow-xl"
+        >
+          {{ isAuthenticated ? '查看笔记' : '立即登录' }}
+        </router-link>
+        <router-link 
+          v-if="!isAuthenticated"
+          to="/register" 
+          class="btn btn-outline ml-4 px-8 py-3 text-lg"
+        >
+          免费注册
+        </router-link>
       </div>
     </div>
 

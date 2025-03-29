@@ -1,4 +1,48 @@
-# Logs
+# 依赖管理
+/node_modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# 构建输出
+/dist
+dist/
+/build
+build/
+
+# 本地环境文件
+.env.local
+.env.*.local
+
+# 缓存文件
+.cache/
+.npm/
+.pnpm-store/
+.pnpm-debug.log*
+.eslintcache
+
+# 测试覆盖率
+/coverage
+coverage/
+
+# IDE 和编辑器设置
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 临时文件
+.temp
+.tmp
+
+# 日志文件
 logs
 *.log
 npm-debug.log*
@@ -7,24 +51,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-.DS_Store
-dist
-dist-ssr
-coverage
-*.local
+# 测试文件
+/tests/e2e/videos/
+/tests/e2e/screenshots/
 
-/cypress/videos/
-/cypress/screenshots/
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-*.tsbuildinfo
+# 用户上传
+/public/uploads

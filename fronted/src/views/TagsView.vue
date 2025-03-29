@@ -14,10 +14,10 @@
             type="text" 
             placeholder="输入标签名..." 
             class="flex-grow px-4 py-2 rounded-l border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-            @keyup.enter="addTag"
+            @keyup.enter="createTag"
           >
           <button 
-            @click="addTag" 
+            @click="createTag" 
             class="btn btn-primary rounded-l-none px-4 dark:bg-primary-600 dark:hover:bg-primary-700"
             :disabled="!newTagName.trim()"
           >
@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <div v-if="loading" class="flex justify-center my-8">
+      <div v-if="isLoading" class="flex justify-center my-8">
         <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-500 dark:border-primary-300"></div>
       </div>
 
@@ -73,7 +73,7 @@
             <div class="flex items-center">
               <span class="text-xs text-gray-500 dark:text-gray-300 mr-2">{{ tag.noteCount || 0 }}篇笔记</span>
               <button 
-                @click="deleteTag(tag.id)" 
+                @click="confirmDelete(tag)" 
                 class="text-gray-400 hover:text-red-500 dark:text-gray-300 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -85,18 +85,50 @@
         </div>
       </div>
     </div>
+
+    <!-- 删除确认对话框 -->
+    <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      <div class="bg-white p-8 rounded-lg shadow-md dark:bg-gray-800">
+        <h2 class="text-2xl font-bold mb-4">确认删除标签</h2>
+        <p class="text-gray-700 dark:text-gray-300">确定要删除标签"{{ tagToDelete?.name }}"吗？</p>
+        <div class="mt-6 flex justify-end">
+          <button 
+            @click="cancelDelete" 
+            class="btn btn-secondary mr-2"
+          >
+            取消
+          </button>
+          <button 
+            @click="deleteTag" 
+            class="btn btn-primary"
+          >
+            确认删除
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useTagsStore } from '@/stores/tags';
+import { useNotesStore } from '@/stores/notes';
+import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 
-const loading = ref(true);
-const tags = ref([]);
+const router = useRouter();
+const tagsStore = useTagsStore();
+const notesStore = useNotesStore();
+
+// 从store获取状态
+const { tags, isLoading } = storeToRefs(tagsStore);
+
+// 本地状态
 const newTagName = ref('');
-const searchQuery = ref('');
-const showDeleteConfirm = ref(false);
 const tagToDelete = ref(null);
+const showDeleteModal = ref(false);
+const searchQuery = ref('');
 
 // 根据标签名生成一致的颜色
 const getTagColor = (name) => {
@@ -119,83 +151,60 @@ const getTagColor = (name) => {
   return colors[sum % colors.length];
 };
 
-// 过滤标签
+// 经过搜索过滤的标签
 const filteredTags = computed(() => {
-  if (!searchQuery.value) return tags.value;
+  if (!searchQuery.value.trim()) return tags.value;
   
   const query = searchQuery.value.toLowerCase();
-  return tags.value.filter(tag => 
-    tag.name.toLowerCase().includes(query)
-  );
+  return tags.value.filter(tag => tag.name.toLowerCase().includes(query));
 });
 
-// 获取标签数据
-const fetchTags = async () => {
-  loading.value = true;
-  
-  // 模拟API调用
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  // 模拟数据
-  tags.value = [
-    { id: 1, name: "前端", noteCount: 2 },
-    { id: 2, name: "Vue", noteCount: 1 },
-    { id: 3, name: "JavaScript", noteCount: 1 },
-    { id: 4, name: "后端", noteCount: 1 },
-    { id: 5, name: "Docker", noteCount: 1 },
-    { id: 6, name: "数据库", noteCount: 0 },
-    { id: 7, name: "Python", noteCount: 0 },
-    { id: 8, name: "算法", noteCount: 0 }
-  ];
-  
-  loading.value = false;
-};
-
-// 添加标签
-const addTag = async () => {
+// 创建新标签
+const createTag = async () => {
   if (!newTagName.value.trim()) return;
   
-  const tagName = newTagName.value.trim();
-  
-  // 检查标签是否已存在
-  if (tags.value.some(tag => tag.name.toLowerCase() === tagName.toLowerCase())) {
-    alert('标签已存在');
-    return;
+  try {
+    await tagsStore.createTag({ name: newTagName.value.trim() });
+    newTagName.value = ''; // 清空输入框
+  } catch (error) {
+    console.error('创建标签失败:', error);
+    alert('创建标签失败，请稍后重试');
   }
-  
-  // 模拟API调用
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // 添加新标签
-  const newTag = {
-    id: Date.now(), // 模拟生成ID
-    name: tagName,
-    noteCount: 0
-  };
-  
-  tags.value.push(newTag);
-  newTagName.value = '';
 };
 
-// 删除标签
-const deleteTag = async (id) => {
-  // 检查该标签是否有笔记使用
-  const tag = tags.value.find(t => t.id === id);
-  
-  if (tag && tag.noteCount > 0) {
-    if (!confirm(`标签"${tag.name}"正在被${tag.noteCount}篇笔记使用，确定要删除吗？`)) {
-      return;
-    }
-  }
-  
-  // 模拟API调用
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // 从列表中移除
-  tags.value = tags.value.filter(tag => tag.id !== id);
+// 确认删除标签
+const confirmDelete = (tag) => {
+  tagToDelete.value = tag;
+  showDeleteModal.value = true;
 };
 
-onMounted(() => {
-  fetchTags();
+// 取消删除
+const cancelDelete = () => {
+  tagToDelete.value = null;
+  showDeleteModal.value = false;
+};
+
+// 执行删除标签
+const deleteTag = async () => {
+  if (!tagToDelete.value) return;
+  
+  try {
+    await tagsStore.deleteTag(tagToDelete.value.id);
+    cancelDelete(); // 关闭删除对话框
+  } catch (error) {
+    console.error('删除标签失败:', error);
+    alert('删除标签失败，请稍后重试');
+  }
+};
+
+// 查看包含此标签的笔记
+const viewNotesByTag = (tagId) => {
+  notesStore.filterByTag(tagId);
+  router.push({ name: 'notes' });
+};
+
+// 加载标签数据
+onMounted(async () => {
+  await tagsStore.fetchTags();
 });
 </script> 
