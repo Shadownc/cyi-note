@@ -1,77 +1,94 @@
 <template>
-  <div class="container mx-auto py-8">
+  <div class="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-5xl">
     <div v-if="loading" class="flex justify-center my-12">
       <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 dark:border-primary-300"></div>
     </div>
 
-    <div v-else>
+    <div v-else class="animate-fadeIn">
       <!-- 返回按钮 -->
-      <div class="mb-6">
+      <div class="mb-4 sm:mb-6">
         <router-link 
           :to="isNewNote ? '/notes' : `/notes/${route.params.id}`" 
-          class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
+          class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors text-sm sm:text-base"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           {{ isNewNote ? '返回笔记列表' : '返回笔记详情' }}
         </router-link>
       </div>
 
-      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-50 mb-6">{{ isNewNote ? '新建笔记' : '编辑笔记' }}</h1>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4 sm:p-5 md:p-6 lg:p-8">
+        <h1 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-50 mb-4 sm:mb-6 flex flex-wrap items-center">
+          <span class="mr-2">{{ isNewNote ? '新建笔记' : '编辑笔记' }}</span>
+          <span v-if="isSaving" class="inline-block animate-pulse text-primary-500 text-sm font-normal">保存中...</span>
+        </h1>
 
-      <!-- 表单 -->
-      <form @submit.prevent="saveNote" class="space-y-6">
-        <!-- 标题 -->
-        <div>
-          <label for="title" class="block text-gray-700 dark:text-gray-200 font-medium mb-2">标题</label>
-          <input 
-            id="title" 
-            v-model="noteForm.title" 
-            type="text" 
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white"
-            placeholder="请输入标题" 
-            required
-          >
-        </div>
+        <!-- 表单 -->
+        <form @submit.prevent="saveNote" class="space-y-4 sm:space-y-6">
+          <!-- 标题 -->
+          <div class="relative">
+            <label for="title" class="block text-gray-700 dark:text-gray-200 font-medium mb-1 sm:mb-2 text-sm sm:text-base">标题</label>
+            <input 
+              id="title" 
+              v-model="noteForm.title" 
+              type="text" 
+              class="w-full px-3 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white transition-colors"
+              placeholder="请输入标题" 
+              required
+              autocomplete="off"
+            >
+          </div>
 
-        <!-- 标签 -->
-        <div>
-          <label class="block text-gray-700 dark:text-gray-200 font-medium mb-2">标签</label>
-          <TagManager 
-            :tags="noteForm.tags" 
-            @add-tag="addTag" 
-            @remove-tag="removeTag" 
-          />
-        </div>
+          <!-- 标签 -->
+          <div class="relative">
+            <label class="block text-gray-700 dark:text-gray-200 font-medium mb-1 sm:mb-2 text-sm sm:text-base">标签</label>
+            <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-750 rounded-md border border-gray-200 dark:border-gray-600">
+              <TagManager 
+                :tags="noteForm.tags" 
+                @add-tag="addTag" 
+                @remove-tag="removeTag" 
+              />
+            </div>
+          </div>
 
-        <!-- Markdown编辑器 -->
-        <div>
-          <label class="block text-gray-700 dark:text-gray-200 font-medium mb-2">内容</label>
-          <MarkdownEditor 
-            :initial-value="noteForm.content" 
-            @update:content="noteForm.content = $event" 
-          />
-        </div>
+          <!-- Markdown编辑器 -->
+          <div class="relative">
+            <label class="block text-gray-700 dark:text-gray-200 font-medium mb-1 sm:mb-2 text-sm sm:text-base">内容</label>
+            <div class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-750 rounded-md border border-gray-200 dark:border-gray-600">
+              <MarkdownEditor 
+                :initial-value="noteForm.content" 
+                @update:content="noteForm.content = $event" 
+              />
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+              支持Markdown格式，可使用上方工具栏添加格式化内容
+            </div>
+          </div>
 
-        <!-- 提交按钮 -->
-        <div class="flex justify-end space-x-3">
-          <button 
-            type="button" 
-            @click="$router.go(-1)" 
-            class="btn btn-secondary dark:text-gray-200 dark:border-gray-600"
-          >
-            取消
-          </button>
-          <button 
-            type="submit" 
-            class="btn btn-primary dark:bg-primary-600 dark:hover:bg-primary-700"
-            :disabled="isSaving"
-          >
-            {{ isSaving ? '保存中...' : '保存笔记' }}
-          </button>
-        </div>
-      </form>
+          <!-- 提交按钮 -->
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:space-x-3 mt-6 sm:mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button 
+              type="button" 
+              @click="$router.go(-1)" 
+              class="btn btn-secondary dark:text-gray-200 dark:border-gray-600 py-2 sm:py-2 text-sm sm:text-base w-full sm:w-auto"
+            >
+              取消
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-primary dark:bg-primary-600 dark:hover:bg-primary-700 py-2 sm:py-2 text-sm sm:text-base w-full sm:w-auto flex justify-center items-center"
+              :disabled="isSaving"
+            >
+              <svg v-if="isSaving" class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              {{ isSaving ? '保存中...' : '保存笔记' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -225,4 +242,56 @@ const saveNote = async () => {
 onMounted(() => {
   fetchNoteData();
 });
-</script> 
+</script>
+
+<style scoped>
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 移动端优化 */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* 确保表单控件在移动端有足够的点击面积 */
+  input, button {
+    min-height: 40px;
+  }
+  
+  textarea {
+    min-height: 150px;
+  }
+  
+  /* 调整按钮和间距 */
+  .btn {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* 确保safari中输入框有正确的样式 */
+input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* 移除表单元素聚焦时的默认边框 */
+*:focus {
+  outline: none;
+}
+</style> 
