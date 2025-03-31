@@ -26,6 +26,9 @@ type Config struct {
 	AdminUsername string
 	AdminPassword string
 	AdminEmail    string
+
+	// 上传文件配置
+	UploadDir     string // 上传文件的根目录
 }
 
 // DatabaseConfig 数据库配置
@@ -82,6 +85,9 @@ func LoadConfig() (*Config, error) {
 	adminUsername := getEnv("ADMIN_USERNAME", "admin")
 	adminPassword := getEnv("ADMIN_PASSWORD", "admin123")
 	adminEmail := getEnv("ADMIN_EMAIL", "admin@example.com")
+
+	// 上传文件配置
+	uploadDir := getEnv("UPLOAD_DIR", "uploads")
 	
 	return &Config{
 		ServerHost: serverHost,
@@ -104,6 +110,8 @@ func LoadConfig() (*Config, error) {
 		AdminUsername: adminUsername,
 		AdminPassword: adminPassword,
 		AdminEmail:    adminEmail,
+
+		UploadDir: uploadDir,
 	}, nil
 }
 

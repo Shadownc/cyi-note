@@ -33,6 +33,7 @@ func SetupRoutes(r *gin.Engine) {
 		notes.PUT("/:id", controllers.UpdateNote)
 		notes.DELETE("/:id", controllers.DeleteNote)
 		notes.GET("/search", controllers.SearchNotes)
+		notes.GET("/:id/attachments", controllers.GetNoteAttachments)
 	}
 	
 	// 标签相关路由
@@ -53,6 +54,7 @@ func SetupRoutes(r *gin.Engine) {
 		attachments.POST("", controllers.UploadAttachment)
 		attachments.GET("/:id", controllers.GetAttachment)
 		attachments.DELETE("/:id", controllers.DeleteAttachment)
+		attachments.GET("/library", controllers.GetAttachmentsByDate)
 	}
 	
 	// AI相关路由

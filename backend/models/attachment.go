@@ -1,8 +1,11 @@
 package models
 
 import (
+	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	
 	"gorm.io/gorm"
@@ -27,7 +30,8 @@ type Attachment struct {
 
 // AfterFind 查询后自动设置文件URL
 func (a *Attachment) AfterFind(tx *gorm.DB) error {
-	a.FileURL = "/api/attachments/" + a.Filepath
+	// 使用ID而不是文件路径构建URL
+	a.FileURL = "/api/attachments/" + fmt.Sprintf("%d", a.ID)
 	return nil
 }
 
@@ -111,4 +115,169 @@ func SaveFile(file *os.File, filename string, noteID uint, fileType string) (*At
 // DeleteAttachment 删除附件
 func DeleteAttachment(id uint) error {
 	return DB.Delete(&Attachment{}, id).Error
+}
+
+// DateGroup 日期分组结构
+type DateGroup struct {
+	Date        string `json:"date"`
+	Count       int    `json:"count"`
+	DisplayDate string `json:"displayDate"`
+}
+
+// GetAttachmentsByDate 按日期分组获取附件
+func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]Attachment, []DateGroup, int64, error) {
+	var attachments []Attachment
+	var total int64
+	
+	// 基础查询：获取属于用户的所有附件
+	query := DB.Model(&Attachment{}).
+		Joins("JOIN notes ON notes.id = attachments.note_id").
+		Where("notes.user_id = ?", userID)
+	
+	// 应用文件类型过滤（如果有）
+	if fileType != "" {
+		query = query.Where("attachments.filetype LIKE ?", fileType+"%")
+	}
+	
+	// 获取总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, nil, 0, err
+	}
+	
+	// 获取分页数据
+	if err := query.
+		Order("attachments.created_at DESC").
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		Find(&attachments).Error; err != nil {
+		return nil, nil, 0, err
+	}
+	
+	// 查询日期分组数据
+	var dateGroups []DateGroup
+	var rows *sql.Rows
+	var err error
+	
+	// 检查数据库类型，根据不同类型使用不同的SQL语法
+	dbType := DB.Dialector.Name()
+	
+	// 构建日期查询
+	var dateQuery string
+	params := []interface{}{userID}
+	
+	if dbType == "sqlite" {
+		// SQLite 日期函数
+		dateQuery = `
+			SELECT 
+				strftime('%Y-%m-%d', attachments.created_at) as date,
+				COUNT(attachments.id) as count
+			FROM attachments
+			JOIN notes ON notes.id = attachments.note_id
+			WHERE notes.user_id = ?
+		`
+	} else if dbType == "mysql" || dbType == "postgres" {
+		// MySQL/PostgreSQL 日期函数
+		dateQuery = `
+			SELECT 
+				DATE(attachments.created_at) as date,
+				COUNT(attachments.id) as count
+			FROM attachments
+			JOIN notes ON notes.id = attachments.note_id
+			WHERE notes.user_id = ?
+		`
+	} else {
+		// 兜底方案：直接返回时间戳，后续处理
+		dateQuery = `
+			SELECT 
+				cast(attachments.created_at as text) as date,
+				COUNT(attachments.id) as count
+			FROM attachments
+			JOIN notes ON notes.id = attachments.note_id
+			WHERE notes.user_id = ?
+		`
+	}
+	
+	if fileType != "" {
+		dateQuery += " AND attachments.filetype LIKE ?"
+		params = append(params, fileType+"%")
+	}
+	
+	// 分组和排序
+	if dbType == "sqlite" {
+		dateQuery += " GROUP BY strftime('%Y-%m-%d', attachments.created_at) ORDER BY date DESC"
+	} else if dbType == "mysql" || dbType == "postgres" {
+		dateQuery += " GROUP BY DATE(attachments.created_at) ORDER BY date DESC"
+	} else {
+		dateQuery += " GROUP BY cast(attachments.created_at as text) ORDER BY date DESC"
+	}
+	
+	// 执行查询
+	rows, err = DB.Raw(dateQuery, params...).Rows()
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	defer rows.Close()
+	
+	for rows.Next() {
+		var group DateGroup
+		var date string
+		var count int
+		
+		if err := rows.Scan(&date, &count); err != nil {
+			continue
+		}
+		
+		// 标准化日期格式
+		// 如果返回的是完整日期时间，提取日期部分
+		if len(date) > 10 && strings.Contains(date, "T") {
+			date = strings.Split(date, "T")[0]
+		} else if len(date) > 10 {
+			// 如果是其他格式的日期时间，只保留前10个字符（YYYY-MM-DD）
+			date = date[:10]
+		}
+		
+		// 尝试解析日期
+		t, err := time.Parse("2006-01-02", date)
+		if err != nil {
+			// 尝试解析其他可能的日期格式
+			formats := []string{"2006-01-02", "01/02/2006", "02-01-2006"}
+			for _, format := range formats {
+				t, err = time.Parse(format, date)
+				if err == nil {
+					break
+				}
+			}
+			
+			// 如果还是无法解析，使用当前日期
+			if err != nil {
+				t = time.Now()
+				date = t.Format("2006-01-02")
+			}
+		}
+		
+		group.Date = date
+		group.Count = count
+		group.DisplayDate = formatDisplayDate(t)
+		
+		dateGroups = append(dateGroups, group)
+	}
+	
+	return attachments, dateGroups, total, nil
+}
+
+// formatDisplayDate 格式化显示日期
+func formatDisplayDate(t time.Time) string {
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	yesterday := today.AddDate(0, 0, -1)
+	
+	if t.Year() == today.Year() && t.Month() == today.Month() && t.Day() == today.Day() {
+		return "今天"
+	} else if t.Year() == yesterday.Year() && t.Month() == yesterday.Month() && t.Day() == yesterday.Day() {
+		return "昨天"
+	} else if t.Year() == now.Year() {
+		return t.Format("01月02日")
+	}
+	
+	return t.Format("2006年01月02日")
 } 

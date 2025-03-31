@@ -10,6 +10,7 @@ import (
 	"cyi-note/backend/config"
 	"cyi-note/backend/models"
 	"cyi-note/backend/api"
+	"cyi-note/backend/controllers"
 )
 
 func main() {
@@ -28,6 +29,9 @@ func main() {
 	if err := models.EnsureAdminExists(cfg); err != nil {
 		log.Fatalf("检查管理员账号失败: %v", err)
 	}
+	
+	// 初始化附件控制器
+	controllers.InitAttachmentController(cfg)
 	
 	// 创建Gin引擎
 	r := gin.Default()
