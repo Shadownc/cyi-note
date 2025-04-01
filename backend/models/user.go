@@ -94,6 +94,42 @@ func DeleteUser(id uint) error {
 	return DB.Delete(&User{}, id).Error
 }
 
+// GetUsers 获取用户列表（分页）
+func GetUsers(page, pageSize int, keyword string) ([]User, int64, error) {
+	var users []User
+	var total int64
+	
+	// 构建查询
+	query := DB.Model(&User{})
+	
+	// 添加关键词搜索
+	if keyword != "" {
+		query = query.Where("username LIKE ? OR email LIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	
+	// 获取总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Order("id DESC").Find(&users).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	return users, total, nil
+}
+
+// GetUserNoteCount 获取用户的笔记总数
+func GetUserNoteCount(userID uint) (int64, error) {
+	var count int64
+	if err := DB.Model(&Note{}).Where("user_id = ?", userID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // EnsureAdminExists 确保管理员用户存在
 func EnsureAdminExists(cfg *config.Config) error {
 	// 检查是否存在管理员账号

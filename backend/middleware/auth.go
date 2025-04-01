@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"errors"
-	"net/http"
 	"strings"
 	"time"
 	
@@ -11,6 +10,7 @@ import (
 	
 	"cyi-note/backend/config"
 	"cyi-note/backend/models"
+	"cyi-note/backend/utils"
 )
 
 // JWTClaims 自定义JWT Claims
@@ -26,7 +26,7 @@ func AuthRequired() gin.HandlerFunc {
 		// 获取Bearer Token
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "未提供认证令牌"})
+			utils.UnauthorizedResponse(c)
 			c.Abort()
 			return
 		}
@@ -34,7 +34,7 @@ func AuthRequired() gin.HandlerFunc {
 		// 检查是否为Bearer Token
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "认证令牌格式无效"})
+			utils.UnauthorizedResponse(c)
 			c.Abort()
 			return
 		}
@@ -43,7 +43,7 @@ func AuthRequired() gin.HandlerFunc {
 		// 解析并验证Token
 		claims, err := ParseToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "认证令牌无效或已过期"})
+			utils.UnauthorizedResponse(c)
 			c.Abort()
 			return
 		}
@@ -70,7 +70,7 @@ func AdminRequired() gin.HandlerFunc {
 		// 检查角色是否为管理员
 		role, exists := c.Get("role")
 		if !exists || role != "admin" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "需要管理员权限"})
+			utils.ForbiddenResponse(c, "需要管理员权限")
 			c.Abort()
 			return
 		}
@@ -98,21 +98,12 @@ func GenerateToken(user *models.User) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(expiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "cyi-note",
-			Subject:   user.Username,
 		},
 	}
 	
-	// 创建Token
+	// 生成Token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	
-	// 签名Token
-	tokenString, err := token.SignedString([]byte(cfg.JWTSecret))
-	if err != nil {
-		return "", err
-	}
-	
-	return tokenString, nil
+	return token.SignedString([]byte(cfg.JWTSecret))
 }
 
 // ParseToken 解析JWT令牌
@@ -125,10 +116,6 @@ func ParseToken(tokenString string) (*JWTClaims, error) {
 	
 	// 解析Token
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		// 验证签名算法
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("无效的令牌签名算法")
-		}
 		return []byte(cfg.JWTSecret), nil
 	})
 	
@@ -136,16 +123,10 @@ func ParseToken(tokenString string) (*JWTClaims, error) {
 		return nil, err
 	}
 	
-	// 验证Token是否有效
-	if !token.Valid {
-		return nil, errors.New("无效的令牌")
+	// 验证Token
+	if claims, ok := token.Claims.(*JWTClaims); ok && token.Valid {
+		return claims, nil
 	}
 	
-	// 获取Claims
-	claims, ok := token.Claims.(*JWTClaims)
-	if !ok {
-		return nil, errors.New("无效的令牌声明")
-	}
-	
-	return claims, nil
+	return nil, errors.New("无效的令牌")
 } 

@@ -63,4 +63,15 @@ func SetupRoutes(r *gin.Engine) {
 		ai.POST("/tags", controllers.GenerateTags)
 		ai.POST("/summary", controllers.GenerateSummary)
 	}
+	
+	// 管理员路由
+	admin := api.Group("/admin", middleware.AdminRequired())
+	{
+		// 用户管理
+		admin.GET("/users", controllers.GetUsers)
+		admin.GET("/users/:id", controllers.GetUser)
+		admin.POST("/users", controllers.CreateUser)
+		admin.PUT("/users/:id/role", controllers.UpdateUserRole)
+		admin.DELETE("/users/:id", controllers.DeleteUserByAdmin)
+	}
 } 

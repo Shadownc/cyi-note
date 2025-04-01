@@ -173,7 +173,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 				COUNT(attachments.id) as count
 			FROM attachments
 			JOIN notes ON notes.id = attachments.note_id
-			WHERE notes.user_id = ?
+			WHERE notes.user_id = ? AND attachments.deleted_at IS NULL
 		`
 	} else if dbType == "mysql" || dbType == "postgres" {
 		// MySQL/PostgreSQL 日期函数
@@ -183,7 +183,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 				COUNT(attachments.id) as count
 			FROM attachments
 			JOIN notes ON notes.id = attachments.note_id
-			WHERE notes.user_id = ?
+			WHERE notes.user_id = ? AND attachments.deleted_at IS NULL
 		`
 	} else {
 		// 兜底方案：直接返回时间戳，后续处理
@@ -193,7 +193,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 				COUNT(attachments.id) as count
 			FROM attachments
 			JOIN notes ON notes.id = attachments.note_id
-			WHERE notes.user_id = ?
+			WHERE notes.user_id = ? AND attachments.deleted_at IS NULL
 		`
 	}
 	

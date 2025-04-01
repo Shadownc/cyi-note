@@ -14,13 +14,35 @@
 
         <!-- 桌面端导航 -->
         <div class="hidden md:flex items-center space-x-4">
-          <router-link to="/" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">首页</router-link>
+          <router-link to="/" :class="[
+            'px-3 py-2 rounded-md transition-colors font-medium text-white',
+            activeRoute === 'home' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+          ]">首页</router-link>
           
           <!-- 已登录用户可见的导航 -->
           <template v-if="isAuthenticated">
-            <router-link to="/notes" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">我的笔记</router-link>
-            <router-link to="/tags" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">标签管理</router-link>
-            <router-link to="/library" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">资源库</router-link>
+            <router-link to="/notes" :class="[
+              'px-3 py-2 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'notes' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]">我的笔记</router-link>
+            <router-link to="/tags" :class="[
+              'px-3 py-2 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'tags' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]">标签管理</router-link>
+            <router-link to="/library" :class="[
+              'px-3 py-2 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'library' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]">资源库</router-link>
+            <!-- 管理员可见入口 -->
+            <router-link v-if="isAdmin" to="/admin" :class="[
+              'px-3 py-2 rounded-md transition-colors font-medium text-white flex items-center',
+              activeRoute === 'admin' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              管理后台
+            </router-link>
           </template>
           
           <div class="relative group">
@@ -47,7 +69,10 @@
           <div class="relative ml-3 user-menu-container" v-if="isAuthenticated">
             <button 
               @click="toggleUserMenu"
-              class="flex items-center text-white hover:bg-primary-800 px-3 py-2 rounded-md focus:outline-none"
+              :class="[
+                'flex items-center text-white px-3 py-2 rounded-md focus:outline-none',
+                activeRoute === 'profile' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800'
+              ]"
             >
               <div class="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white font-medium mr-2">
                 {{ userInitials }}
@@ -92,14 +117,20 @@
           <!-- 未登录状态的按钮 -->
           <div v-else class="flex items-center space-x-2">
             <router-link 
-              to="/login" 
-              class="px-3 py-2 rounded-md text-white font-medium hover:bg-primary-700 transition-colors"
+              to="/auth/login" 
+              :class="[
+                'px-3 py-2 rounded-md text-white font-medium transition-colors',
+                activeRoute === 'login' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700'
+              ]"
             >
               登录
             </router-link>
             <router-link 
-              to="/register" 
-              class="px-3 py-2 bg-white text-primary-700 hover:bg-gray-100 rounded-md font-medium transition-colors"
+              to="/auth/register" 
+              :class="[
+                'px-3 py-2 bg-white text-primary-700 rounded-md font-medium transition-colors',
+                activeRoute === 'register' ? 'bg-gray-200' : 'hover:bg-gray-100'
+              ]"
             >
               注册
             </router-link>
@@ -122,7 +153,10 @@
       <div v-if="mobileMenuOpen" class="md:hidden pb-4 space-y-2 animate-fadeIn">
         <router-link 
           to="/" 
-          class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+          :class="[
+            'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+            activeRoute === 'home' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+          ]"
           @click="mobileMenuOpen = false"
         >
           首页
@@ -132,28 +166,55 @@
         <template v-if="isAuthenticated">
           <router-link 
             to="/notes" 
-            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'notes' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
             @click="mobileMenuOpen = false"
           >
             我的笔记
           </router-link>
           <router-link 
             to="/tags" 
-            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'tags' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
             @click="mobileMenuOpen = false"
           >
             标签管理
           </router-link>
           <router-link 
             to="/library" 
-            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white', 
+              activeRoute === 'library' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
             @click="mobileMenuOpen = false"
           >
             资源库
           </router-link>
+          <!-- 管理员可见的移动端入口 -->
+          <router-link 
+            v-if="isAdmin"
+            to="/admin" 
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white flex items-center', 
+              activeRoute === 'admin' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
+            @click="mobileMenuOpen = false"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+            </svg>
+            管理后台
+          </router-link>
           <router-link 
             to="/profile" 
-            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'profile' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
             @click="mobileMenuOpen = false"
           >
             个人资料
@@ -169,15 +230,21 @@
         <!-- 未登录状态的移动端导航 -->
         <template v-else>
           <router-link 
-            to="/login" 
-            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            to="/auth/login" 
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'login' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
             @click="mobileMenuOpen = false"
           >
             登录
           </router-link>
           <router-link 
-            to="/register" 
-            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            to="/auth/register" 
+            :class="[
+              'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+              activeRoute === 'register' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            ]"
             @click="mobileMenuOpen = false"
           >
             注册
@@ -207,11 +274,12 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import ThemeSettings from './ThemeSettings.vue';
 import { useUserStore } from '@/stores/user';
 
 const router = useRouter();
+const route = useRoute();
 const userStore = useUserStore();
 const mobileMenuOpen = ref(false);
 const userMenuOpen = ref(false);
@@ -221,6 +289,23 @@ const isAuthenticated = computed(() => userStore.isAuthenticated);
 const username = computed(() => userStore.user?.username || '');
 const userInitials = computed(() => {
   return username.value ? username.value.charAt(0).toUpperCase() : '';
+});
+
+// 是否为管理员
+const isAdmin = computed(() => userStore.user?.role === 'admin');
+
+// 当前激活的路由
+const activeRoute = computed(() => {
+  const path = route.path;
+  if (path === '/') return 'home';
+  if (path.startsWith('/notes')) return 'notes';
+  if (path.startsWith('/tags')) return 'tags';
+  if (path.startsWith('/library')) return 'library';
+  if (path.startsWith('/profile')) return 'profile';
+  if (path.startsWith('/admin')) return 'admin';
+  if (path.includes('/login')) return 'login';
+  if (path.includes('/register')) return 'register';
+  return '';
 });
 
 // 切换移动菜单
@@ -242,6 +327,8 @@ const toggleUserMenu = () => {
 const logout = () => {
   userStore.logout();
   userMenuOpen.value = false;
+  mobileMenuOpen.value = false;
+  router.push('/');
 };
 
 // 关闭点击外部区域时关闭用户菜单
@@ -252,6 +339,12 @@ onMounted(() => {
       userMenuOpen.value = false;
     }
   });
+});
+
+// 监听路由变化关闭菜单
+watch(() => route.path, () => {
+  userMenuOpen.value = false;
+  mobileMenuOpen.value = false;
 });
 </script>
 
@@ -269,9 +362,5 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.router-link-active {
-  @apply bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold;
 }
 </style> 

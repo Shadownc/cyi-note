@@ -8,6 +8,18 @@ import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import LibraryView from '../views/LibraryView.vue'
+
+// 布局组件
+import DefaultLayout from '../layouts/DefaultLayout.vue'
+import BlankLayout from '../layouts/BlankLayout.vue'
+import AdminLayout from '../layouts/AdminLayout.vue'
+
+// 管理后台子视图
+import AdminUsersView from '../views/admin/UsersView.vue'
+import AdminNotesView from '../views/admin/NotesView.vue'
+import AdminTagsView from '../views/admin/TagsView.vue'
+import AdminSettingsView from '../views/admin/SettingsView.vue'
+
 import { useUserStore } from '../stores/user'
 
 // 白名单路由 - 这些路由不需要登录就能访问
@@ -18,108 +30,164 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      component: DefaultLayout,
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: HomeView,
+        },
+        {
+          path: 'notes',
+          name: 'notes',
+          component: NotesView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'notes/new',
+          name: 'note-new',
+          component: NoteEditView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'notes/:id',
+          name: 'note-detail',
+          component: NoteDetailView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'notes/:id/edit',
+          name: 'note-edit',
+          component: NoteEditView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'tags',
+          name: 'tags',
+          component: TagsView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'library',
+          name: 'library',
+          component: LibraryView,
+          meta: { requiresAuth: true }
+        },
+        {
+          path: 'profile',
+          name: 'profile',
+          component: ProfileView,
+          meta: { requiresAuth: true }
+        },
+      ]
     },
     {
-      path: '/notes',
-      name: 'notes',
-      component: NotesView,
-      meta: { requiresAuth: true }
+      path: '/admin',
+      component: AdminLayout,
+      meta: { requiresAuth: true, requiresAdmin: true },
+      children: [
+        {
+          path: '',
+          redirect: '/admin/users'
+        },
+        {
+          path: 'users',
+          name: 'admin-users',
+          component: AdminUsersView,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: 'notes',
+          name: 'admin-notes',
+          component: AdminNotesView,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: 'tags',
+          name: 'admin-tags',
+          component: AdminTagsView,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+          path: 'settings',
+          name: 'admin-settings',
+          component: AdminSettingsView,
+          meta: { requiresAuth: true, requiresAdmin: true }
+        }
+      ]
     },
     {
-      path: '/notes/new',
-      name: 'note-new',
-      component: NoteEditView,
-      meta: { requiresAuth: true }
+      path: '/auth',
+      component: BlankLayout,
+      children: [
+        {
+          path: 'login',
+          name: 'login',
+          component: LoginView
+        },
+        {
+          path: 'register',
+          name: 'register',
+          component: RegisterView
+        },
+      ]
     },
-    {
-      path: '/notes/:id',
-      name: 'note-detail',
-      component: NoteDetailView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/notes/:id/edit',
-      name: 'note-edit',
-      component: NoteEditView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/tags',
-      name: 'tags',
-      component: TagsView,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/library',
-      name: 'library',
-      component: LibraryView,
-      meta: { requiresAuth: true }
-    },
+    // 重定向旧的登录/注册路径到新路径
     {
       path: '/login',
-      name: 'login',
-      component: LoginView
+      redirect: '/auth/login'
     },
     {
       path: '/register',
-      name: 'register',
-      component: RegisterView
-    },
-    {
-      path: '/profile',
-      name: 'profile',
-      component: ProfileView,
-      meta: { requiresAuth: true }
-    },
+      redirect: '/auth/register'
+    }
   ],
 })
 
 // 全局前置守卫
 router.beforeEach(async (to, from, next) => {
-  // 使用Pinia存储的认证状态
+  // 获取用户存储
   const userStore = useUserStore()
-  const hasToken = !!userStore.token
-  const isPublicPage = whiteList.includes(to.name)
   
-  console.log('路由导航守卫 - 目标:', to.path, '是否公开页面:', isPublicPage, '是否有token:', hasToken)
-  
-  // 如果有token
-  if (hasToken) {
-    // 已登录用户访问登录/注册页面，重定向到笔记页
-    if (to.name === 'login' || to.name === 'register') {
-      console.log('已登录用户访问登录/注册页面，重定向到笔记页')
-      next({ name: 'notes' })
-    } else {
-      // 其他页面，先获取用户信息（如果还没有）
-      // 只有在user对象为空时才请求用户信息，避免频繁请求
-      if (Object.keys(userStore.user).length === 0) {
-        try {
-          await userStore.fetchUserInfo()
-        } catch (error) {
-          // 如果获取用户信息失败（如token过期），清除token并跳转到登录页
-          console.error('获取用户信息失败:', error)
-          userStore.logout()
-          next({ name: 'login', query: { redirect: to.fullPath } })
-          return
-        }
-      }
-      // 正常访问
-      next()
-    }
-  } else {
-    // 未登录状态
-    if (isPublicPage) {
-      // 公开页面允许访问
-      console.log('未登录用户访问公开页面，允许访问')
-      next()
-    } else {
-      // 非公开页面，重定向到登录页
-      console.log('未登录用户访问受保护页面，重定向到登录页')
-      next({ name: 'login', query: { redirect: to.fullPath } })
+  // 如果已登录但没有用户信息，尝试获取
+  if (userStore.isAuthenticated && Object.keys(userStore.user).length === 0) {
+    try {
+      await userStore.fetchUserInfo()
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      userStore.logout()
+      next({ path: '/auth/login', query: { redirect: to.fullPath } })
+      return
     }
   }
+  
+  // 如果需要认证的路由
+  if (to.meta.requiresAuth) {
+    // 检查用户是否已登录
+    if (!userStore.isAuthenticated) {
+      next({
+        path: '/auth/login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+    
+    // 如果需要管理员权限
+    if (to.meta.requiresAdmin && userStore.user.role !== 'admin') {
+      // 不是管理员，跳转到主页
+      next({ path: '/' })
+      return
+    }
+  }
+  
+  // 如果已登录且访问登录/注册页面，重定向到首页
+  if (userStore.isAuthenticated && (to.path === '/auth/login' || to.path === '/auth/register')) {
+    next({ path: '/' })
+    return
+  }
+  
+  // 其他情况允许访问
+  next()
 })
 
 export default router
