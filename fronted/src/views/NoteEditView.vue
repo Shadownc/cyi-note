@@ -25,7 +25,7 @@
         </h1>
 
         <!-- 表单 -->
-        <form @submit.prevent="saveNote" class="space-y-4 sm:space-y-6">
+        <form @submit.prevent="saveNote" class="space-y-4 sm:space-y-6" id="noteForm" @keydown.enter.prevent>
           <!-- 标题 -->
           <div class="relative">
             <label for="title" class="block text-gray-700 dark:text-gray-200 font-medium mb-1 sm:mb-2 text-sm sm:text-base">标题</label>
@@ -37,6 +37,7 @@
               placeholder="请输入标题" 
               required
               autocomplete="off"
+              @keydown.enter.prevent
             >
           </div>
 
@@ -67,11 +68,35 @@
             </div>
           </div>
 
+          <!-- 附件管理 -->
+          <div class="relative">
+            <label class="block text-gray-700 dark:text-gray-200 font-medium mb-1 sm:mb-2 text-sm sm:text-base">附件</label>
+            <div 
+              class="p-3 sm:p-4 bg-gray-50 dark:bg-gray-750 rounded-md border border-gray-200 dark:border-gray-600" 
+              @click.stop.prevent
+              @submit.prevent
+              @mousedown.stop
+            >
+              <AttachmentManager 
+                v-if="!isNewNote" 
+                :noteId="parseInt(route.params.id)" 
+                @upload-success="handleAttachmentUploadSuccess"
+                @delete-success="handleAttachmentDeleteSuccess"
+              />
+              <div v-else class="text-center py-4 text-gray-500 dark:text-gray-400">
+                <p>请先保存笔记，然后才能添加附件</p>
+              </div>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+              上传图片、文档等文件作为笔记附件
+            </div>
+          </div>
+
           <!-- 提交按钮 -->
           <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:space-x-3 mt-6 sm:mt-8 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button 
               type="button" 
-              @click="$router.go(-1)" 
+              @click.prevent="$router.go(-1)" 
               class="btn btn-secondary dark:text-gray-200 dark:border-gray-600 py-2 sm:py-2 text-sm sm:text-base w-full sm:w-auto"
             >
               取消
@@ -102,6 +127,7 @@ import { useNotesStore } from '@/stores/notes';
 import { useTagsStore } from '@/stores/tags';
 import { storeToRefs } from 'pinia';
 import TagManager from '@/components/TagManager.vue';
+import AttachmentManager from '@/components/AttachmentManager.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -187,6 +213,48 @@ const generateTags = async () => {
     console.error('生成标签建议失败:', error);
   }
 };
+
+// 处理附件上传成功
+const handleAttachmentUploadSuccess = async (event) => {
+  // 阻止事件冒泡和表单提交
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
+  console.log('附件上传成功，刷新笔记数据');
+  // 刷新笔记数据以获取最新的附件列表，但不进行页面跳转
+  if (noteId) {
+    try {
+      await notesStore.fetchNote(noteId);
+      // 成功上传提示
+      alert('附件上传成功！');
+    } catch (error) {
+      console.error('刷新笔记数据失败:', error);
+    }
+  }
+}
+
+// 处理附件删除成功
+const handleAttachmentDeleteSuccess = async (event) => {
+  // 阻止事件冒泡和表单提交
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
+  console.log('附件删除成功，刷新笔记数据');
+  // 刷新笔记数据以获取最新的附件列表
+  if (noteId) {
+    try {
+      await notesStore.fetchNote(noteId);
+      // 删除成功提示
+      alert('附件删除成功！');
+    } catch (error) {
+      console.error('刷新笔记数据失败:', error);
+    }
+  }
+}
 
 // 切换预览
 const togglePreview = () => {

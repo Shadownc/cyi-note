@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # 数据库服务
+  db:
+    image: mysql:8.0
+    container_name: cyi-note-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-your_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cyi_note}
+      MYSQL_USER: ${MYSQL_USER:-cyi_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cyi_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cyi-note-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3000}
+      DB_TYPE: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER:-cyi_user}
+      DB_PASS: ${MYSQL_PASSWORD:-cyi_password}
+      DB_NAME: ${MYSQL_DATABASE:-cyi_note}
+      DB_SSL_MODE: disable
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
+      JWT_EXPIRY: ${JWT_EXPIRY:-24}
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./fronted
+      dockerfile: Dockerfile
+    container_name: cyi-note-frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+    ports:
+      - "3000:80"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data: 

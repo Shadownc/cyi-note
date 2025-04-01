@@ -40,6 +40,192 @@
 
     <!-- 笔记内容 - Markdown渲染 -->
     <div class="prose dark:prose-invert sm:prose-sm md:prose-base max-w-none overflow-hidden dark:bg-gray-800/30 dark:p-4 dark:rounded-lg animate-fadeIn" v-html="renderedContent" ref="contentRef"></div>
+
+    <!-- 附件区域 -->
+    <div v-if="note.attachments && note.attachments.length > 0" class="mt-6 border-t dark:border-gray-700 pt-4">
+      <h3 class="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">附件</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        <div 
+          v-for="attachment in note.attachments" 
+          :key="attachment.id"
+          class="attachment-item border dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
+        >
+          <!-- 图片附件 -->
+          <div v-if="isImage(attachment)" class="relative">
+            <div class="w-full h-32 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+              <img
+                v-if="loading"
+                class="w-6 h-6 animate-spin text-primary-500"
+                src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgb3BhY2l0eT0iMC4yNSIvPjxwYXRoIGQ9Ik0xNi4yNCAxNy43OEE5IDkgMCAwIDEgNS43NiA2LjIyIiBvcGFjaXR5PSIwLjc1Ii8+PC9zdmc+"
+                alt="加载中"
+              />
+              <img
+                v-else
+                :src="attachmentBlobUrls[attachment.id] || ''"
+                :alt="attachment.filename"
+                class="w-full h-full object-cover cursor-pointer"
+                @click="openImageViewer(attachment)"
+                loading="lazy"
+                @error="handleImageError(attachment)"
+                ref="imageRefs"
+              />
+              <div v-if="failedImages[attachment.id]" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-400 dark:text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p class="text-sm text-gray-500 dark:text-gray-400">图片加载失败</p>
+                <button
+                  @click.stop="reloadImage(attachment)"
+                  class="mt-2 text-xs text-white bg-primary-500 hover:bg-primary-600 px-2 py-1 rounded"
+                >
+                  重试
+                </button>
+              </div>
+            </div>
+            <div class="absolute top-1 right-1">
+              <button
+                @click="downloadAttachment(attachment)"
+                class="bg-gray-800/70 hover:bg-gray-900/70 text-white rounded p-1 transition-colors"
+                title="下载"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 非图片附件 -->
+          <div v-else class="flex justify-between p-3">
+            <div class="flex items-center">
+              <div class="file-icon mr-3 text-gray-500 dark:text-gray-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate" :title="attachment.filename">
+                  {{ attachment.filename }}
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ formatFileSize(attachment.filesize) }}
+                </span>
+              </div>
+            </div>
+            <button
+              @click="downloadAttachment(attachment)"
+              class="bg-primary-500 hover:bg-primary-600 text-white rounded p-1 transition-colors"
+              title="下载"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 图片查看器 - 新设计 -->
+    <div v-if="showImageViewer" class="fixed inset-0 z-50" @click.self="closeImageViewer">
+      <!-- 玻璃态背景 -->
+      <div class="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
+      
+      <!-- 主内容区 -->
+      <div class="relative z-10 w-full h-full flex flex-col">
+        
+        <!-- 顶部工具栏 -->
+        <div class="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
+          <h3 class="text-white text-lg font-medium truncate max-w-[60%] opacity-80" v-if="currentImageAttachment">
+            {{ currentImageAttachment.filename }}
+          </h3>
+          
+          <div class="flex space-x-3">
+            <button 
+              v-if="currentImageAttachment"
+              @click="downloadAttachment(currentImageAttachment)"
+              class="bg-black/25 hover:bg-blue-600/90 text-white p-2.5 rounded-full transition-all shadow-lg"
+              title="下载图片"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+            </button>
+            <button 
+              @click="closeImageViewer"
+              class="bg-black/25 hover:bg-red-600/90 text-white p-2.5 rounded-full transition-all shadow-lg"
+              title="关闭"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- 中央内容区 -->
+        <div class="flex-grow flex items-center justify-center p-4">
+          <!-- 加载中状态 -->
+          <div v-if="imageLoading" class="flex flex-col items-center justify-center">
+            <!-- 更现代的加载动画 -->
+            <div class="relative w-20 h-20">
+              <div class="absolute inset-0 rounded-full border-4 border-blue-200/30"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-blue-500 animate-spin"></div>
+              <div class="absolute inset-0 rounded-full border-4 border-transparent border-l-blue-400 animate-spin" style="animation-duration: 1.5s;"></div>
+            </div>
+            <p class="mt-6 text-blue-300 text-lg font-medium animate-pulse">载入图片中...</p>
+          </div>
+          
+          <!-- 图片加载错误 -->
+          <div v-else-if="imageError" class="text-center">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-red-500/20 mb-6 animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p class="text-red-200 text-xl font-medium mb-5">图片载入失败</p>
+            <button 
+              @click="reloadImage(currentImageAttachment)"
+              class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-full transition-colors shadow-lg shadow-blue-900/30"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              重新加载
+            </button>
+          </div>
+          
+          <!-- 图片显示 -->
+          <div 
+            v-else-if="currentImageUrl" 
+            class="relative w-full h-full flex items-center justify-center"
+            :class="{'cursor-grab': !isZoomed, 'cursor-grabbing': isZoomed}"
+          >
+            <div class="relative group">
+              <img
+                :src="currentImageUrl"
+                :alt="currentImageAttachment ? currentImageAttachment.filename : ''"
+                class="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl transition-all duration-300"
+                :class="{'scale-[1.5] rotate-0': isZoomed}"
+                @click.stop="toggleZoom"
+                @load="handleImageLoaded"
+              />
+              
+            </div>
+          
+          </div>
+        </div>
+      </div>
+      
+      <!-- 移动端专用底部工具栏 - 移除重复的下载和关闭按钮，改为显示当前状态和图片名称 -->
+      <div class="fixed bottom-8 left-0 right-0 flex justify-center z-30 sm:hidden">
+        <div class="flex items-center px-5 py-2 rounded-full bg-gray-900/70 backdrop-blur-sm shadow-xl">
+          <div class="text-white/80 text-sm truncate max-w-[60vw]" v-if="currentImageAttachment">
+            {{ currentImageAttachment.filename }}
+          </div>
+        </div>
+      </div>
+    </div>
     
     <!-- 移动端返回顶部按钮 -->
     <button 
@@ -64,8 +250,9 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, onMounted, watch, onUnmounted, nextTick } from 'vue';
+import { ref, defineProps, defineEmits, onMounted, watch, onUnmounted, nextTick, computed } from 'vue';
 import { marked } from 'marked';
+import { useAttachmentsStore } from '@/stores/attachments';
 
 const props = defineProps({
   note: {
@@ -80,6 +267,22 @@ const renderedContent = ref('');
 const showScrollToTop = ref(false);
 const showCopySuccess = ref(false);
 const contentRef = ref(null);
+const showImageViewer = ref(false);
+const currentImageAttachment = ref(null);
+const currentImageUrl = computed(() => {
+  if (!currentImageAttachment.value || !currentImageAttachment.value.id) return '';
+  return attachmentBlobUrls.value[currentImageAttachment.value.id] || '';
+});
+const imageLoading = ref(false);
+const imageError = ref(false);
+const loading = ref(false);
+const failedImages = ref({});
+const imageRefs = ref([]);
+const attachmentBlobUrls = ref({});
+const isZoomed = ref(false);
+
+// 附件相关
+const attachmentsStore = useAttachmentsStore();
 
 // 格式化日期
 const formatDate = (dateString, shortFormat = false) => {
@@ -167,6 +370,14 @@ const setupMarked = () => {
     `;
   };
   
+  // 修改链接渲染，使链接在新标签页打开
+  const originalLinkRenderer = renderer.link;
+  renderer.link = function(href, title, text) {
+    const html = originalLinkRenderer.call(this, href, title, text);
+    // 替换target属性为_blank，并添加rel="noopener noreferrer"以提高安全性
+    return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
+  };
+  
   marked.setOptions({
     renderer: renderer,
     highlight: function(code, lang) {
@@ -214,16 +425,151 @@ const copyToClipboard = async (text) => {
   }
 };
 
-// 渲染Markdown内容
-const renderContent = () => {
-  if (props.note && props.note.content) {
-    setupMarked();
-    renderedContent.value = marked(props.note.content);
-    
-    nextTick(() => {
-      addCopyFunctionality();
-    });
+// 附件相关函数
+// 判断是否为图片
+const isImage = (attachment) => {
+  if (!attachment || !attachment.filetype) return false;
+  return attachment.filetype.startsWith('image/');
+};
+
+// 格式化文件大小
+const formatFileSize = (size) => {
+  if (!size) return '未知大小';
+  if (size < 1024) {
+    return size + ' B';
+  } else if (size < 1024 * 1024) {
+    return (size / 1024).toFixed(1) + ' KB';
+  } else if (size < 1024 * 1024 * 1024) {
+    return (size / (1024 * 1024)).toFixed(1) + ' MB';
+  } else {
+    return (size / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
   }
+};
+
+// 获取附件URL
+const getAttachmentUrl = (id) => {
+  return attachmentsStore.getAttachmentUrl(id);
+};
+
+// 下载附件
+const downloadAttachment = async (attachment) => {
+  try {
+    await attachmentsStore.downloadAttachment(attachment.id, attachment.filename);
+    console.log('附件下载成功:', attachment.filename);
+  } catch (error) {
+    console.error('下载附件时出错:', error);
+    alert('下载附件失败: ' + (error.message || '请稍后重试'));
+  }
+};
+
+// 获取带认证的图片URL
+const getAuthImageUrl = (id) => {
+  if (!id) return '';
+  const token = localStorage.getItem('token');
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+  const url = `${baseUrl}/attachments/${id}?token=${token}`;
+  console.log('构建图片URL:', url);
+  return url;
+};
+
+// 处理图片加载错误
+const handleImageError = (attachment) => {
+  console.error('图片加载失败:', attachment.id);
+  failedImages.value[attachment.id] = true;
+};
+
+// 预加载图片，创建Blob URL
+const preloadImage = async (attachment) => {
+  if (!attachment || !attachment.id || !isImage(attachment)) return;
+  
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('未提供认证令牌，无法加载图片');
+    failedImages.value[attachment.id] = true;
+    return;
+  }
+  
+  console.log('预加载图片:', attachment.id);
+  
+  try {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+    const response = await fetch(`${baseUrl}/attachments/${attachment.id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    attachmentBlobUrls.value[attachment.id] = blobUrl;
+    failedImages.value[attachment.id] = false;
+    
+    console.log('图片预加载成功:', attachment.id);
+    return blobUrl;
+  } catch (error) {
+    console.error('预加载图片失败:', error);
+    failedImages.value[attachment.id] = true;
+    return null;
+  }
+};
+
+// 重新加载图片
+const reloadImage = async (attachment) => {
+  console.log('重新加载图片:', attachment.id);
+  failedImages.value[attachment.id] = false;
+  
+  // 如果之前有创建的Blob URL，需要释放
+  if (attachmentBlobUrls.value[attachment.id]) {
+    URL.revokeObjectURL(attachmentBlobUrls.value[attachment.id]);
+    attachmentBlobUrls.value[attachment.id] = null;
+  }
+  
+  await preloadImage(attachment);
+};
+
+// 打开图片查看器
+const openImageViewer = (attachment) => {
+  if (attachment.filetype && attachment.filetype.startsWith('image/')) {
+    currentImageAttachment.value = attachment;
+    showImageViewer.value = true;
+    isZoomed.value = false; // 重置缩放状态
+    
+    // 防止滚动
+    document.body.style.overflow = 'hidden';
+    
+    // 确保图片已加载
+    if (!attachmentBlobUrls.value[attachment.id]) {
+      imageLoading.value = true;
+      imageError.value = false;
+      preloadImage(attachment).then(url => {
+        if (url) {
+          imageLoading.value = false;
+        } else {
+          imageError.value = true;
+          imageLoading.value = false;
+        }
+      }).catch(() => {
+        imageError.value = true;
+        imageLoading.value = false;
+      });
+    } else {
+      imageLoading.value = false;
+      imageError.value = false;
+    }
+  }
+};
+
+// 关闭图片查看器
+const closeImageViewer = () => {
+  showImageViewer.value = false;
+  isZoomed.value = false;
+  
+  // 恢复滚动
+  document.body.style.overflow = '';
 };
 
 // 监听滚动事件，判断是否显示返回顶部按钮
@@ -239,21 +585,82 @@ const scrollToTop = () => {
   });
 };
 
+// 监听链接点击事件，确保所有链接在新标签页打开
+const setupLinkBehavior = () => {
+  if (!contentRef.value) return;
+  
+  const links = contentRef.value.querySelectorAll('a');
+  links.forEach(link => {
+    // 如果链接没有target属性或target不是_blank，则设置为在新标签页打开
+    if (!link.hasAttribute('target') || link.getAttribute('target') !== '_blank') {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+};
+
+// 渲染Markdown内容
+const renderContent = () => {
+  if (props.note && props.note.content) {
+    setupMarked();
+    renderedContent.value = marked(props.note.content);
+    
+    nextTick(() => {
+      addCopyFunctionality();
+      setupLinkBehavior();
+    });
+  }
+};
+
 // 监听props变化重新渲染
 watch(() => props.note, () => {
   renderContent();
 }, { deep: true });
 
-// 组件加载时渲染内容
+// 组件加载时渲染内容和预加载图片
 onMounted(() => {
   renderContent();
   window.addEventListener('scroll', handleScroll);
+  
+  // 预加载笔记中的图片附件
+  if (props.note && props.note.attachments) {
+    props.note.attachments.forEach(attachment => {
+      if (isImage(attachment)) {
+        preloadImage(attachment);
+      }
+    });
+  }
 });
 
-// 组件卸载时移除事件监听
+// 组件卸载时移除事件监听和清理资源
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
+  
+  // 释放所有Blob URL
+  Object.values(attachmentBlobUrls.value).forEach(url => {
+    if (url && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  });
+  
+  // 重置状态并恢复滚动
+  if (showImageViewer.value) {
+    showImageViewer.value = false;
+    document.body.style.overflow = '';
+  }
 });
+
+// 处理图片加载完成
+const handleImageLoaded = () => {
+  console.log('图片加载完成');
+  imageLoading.value = false;
+};
+
+// 切换图片缩放状态
+const toggleZoom = () => {
+  isZoomed.value = !isZoomed.value;
+  console.log('图片缩放状态:', isZoomed.value ? '已放大' : '已恢复');
+};
 </script>
 
 <style scoped>

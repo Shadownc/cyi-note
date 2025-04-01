@@ -7,6 +7,7 @@ import TagsView from '../views/TagsView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 import ProfileView from '../views/ProfileView.vue'
+import LibraryView from '../views/LibraryView.vue'
 import { useUserStore } from '../stores/user'
 
 // 白名单路由 - 这些路由不需要登录就能访问
@@ -48,6 +49,12 @@ const router = createRouter({
       path: '/tags',
       name: 'tags',
       component: TagsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/library',
+      name: 'library',
+      component: LibraryView,
       meta: { requiresAuth: true }
     },
     {

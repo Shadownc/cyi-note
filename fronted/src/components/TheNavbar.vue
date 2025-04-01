@@ -20,6 +20,7 @@
           <template v-if="isAuthenticated">
             <router-link to="/notes" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">我的笔记</router-link>
             <router-link to="/tags" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">标签管理</router-link>
+            <router-link to="/library" class="px-3 py-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white">资源库</router-link>
           </template>
           
           <div class="relative group">
@@ -142,6 +143,13 @@
             @click="mobileMenuOpen = false"
           >
             标签管理
+          </router-link>
+          <router-link 
+            to="/library" 
+            class="block px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            @click="mobileMenuOpen = false"
+          >
+            资源库
           </router-link>
           <router-link 
             to="/profile" 
