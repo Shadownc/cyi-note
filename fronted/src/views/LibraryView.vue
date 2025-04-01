@@ -386,19 +386,19 @@ const getIconPathByFileType = (filetype) => {
   <div class="px-4 py-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
     <!-- 顶部导航和搜索区域 -->
     <div class="max-w-7xl mx-auto mb-6">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border border-gray-100 dark:border-gray-700">
         <div class="p-5">
           <div class="flex flex-col md:flex-row md:items-center gap-4">
             <!-- 左侧标题 -->
             <div class="flex items-center">
-              <div class="flex-shrink-0 bg-blue-500 dark:bg-blue-600 rounded-lg p-2 mr-3">
+              <div class="flex-shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-600 dark:to-indigo-700 rounded-lg p-3 mr-4 shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </div>
               <div>
-                <h1 class="text-xl font-bold text-gray-800 dark:text-white">资源库</h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400">共 {{ libraryAttachments.length }} 个文件</p>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 bg-clip-text text-transparent">资源库</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">共 {{ totalAttachments }} 个文件</p>
               </div>
             </div>
             
@@ -408,7 +408,7 @@ const getIconPathByFileType = (filetype) => {
                 <!-- 搜索框 -->
                 <div class="relative flex-grow">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -416,7 +416,7 @@ const getIconPathByFileType = (filetype) => {
                     v-model="searchKeyword" 
                     type="text" 
                     placeholder="搜索文件名..." 
-                    class="block w-full pl-10 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                    class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 transition-all duration-200"
                   />
                 </div>
                 
@@ -425,7 +425,7 @@ const getIconPathByFileType = (filetype) => {
                   <div class="relative">
                     <select 
                       v-model="selectedFileType" 
-                      class="block appearance-none w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 py-2 px-4 pr-8 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      class="block appearance-none w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 py-2.5 px-4 pr-8 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                     >
                       <option v-for="option in fileTypeOptions" :key="option.value" :value="option.value">
                         {{ option.label }}
@@ -439,13 +439,13 @@ const getIconPathByFileType = (filetype) => {
                   </div>
                   
                   <!-- 视图切换 -->
-                  <div class="bg-gray-100 dark:bg-gray-700 rounded-lg flex overflow-hidden">
+                  <div class="bg-gray-100 dark:bg-gray-700 rounded-lg flex overflow-hidden shadow-sm">
                     <button
                       @click="viewType = 'grid'"
                       :class="[
-                        'px-3 py-2 transition-all duration-200', 
+                        'px-3 py-2.5 transition-all duration-300', 
                         viewType === 'grid' 
-                          ? 'bg-blue-500 text-white' 
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md' 
                           : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       ]"
                       title="网格视图"
@@ -457,9 +457,9 @@ const getIconPathByFileType = (filetype) => {
                     <button
                       @click="viewType = 'list'"
                       :class="[
-                        'px-3 py-2 transition-all duration-200', 
+                        'px-3 py-2.5 transition-all duration-300', 
                         viewType === 'list' 
-                          ? 'bg-blue-500 text-white' 
+                          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md' 
                           : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       ]"
                       title="列表视图"
@@ -483,12 +483,13 @@ const getIconPathByFileType = (filetype) => {
       
       <!-- 加载状态 -->
       <div v-if="isLoading" class="flex justify-center items-center py-20">
-        <div class="loader">
-          <svg class="circular-loader" viewBox="25 25 50 50">
-            <circle class="loader-path" cx="50" cy="50" r="20" fill="none" stroke-miterlimit="10"></circle>
-          </svg>
+        <div class="loader-container">
+          <div class="ripple-loader">
+            <div></div>
+            <div></div>
+          </div>
+          <span class="ml-4 text-gray-600 dark:text-gray-300 font-medium">加载资源中...</span>
         </div>
-        <span class="ml-3 text-gray-600 dark:text-gray-300">加载中</span>
       </div>
       
       <!-- 没有文件 -->
@@ -527,31 +528,34 @@ const getIconPathByFileType = (filetype) => {
               @click="handleFileClick(attachment)"
             >
               <!-- 图片预览 -->
-              <div v-if="isImage(attachment.filetype)" class="group relative h-0 pb-[100%] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
+              <div v-if="isImage(attachment.filetype)" class="group relative h-0 pb-[100%] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-md hover:shadow-lg transition-all duration-500">
                 <!-- 图片 -->
                 <img 
                   :src="attachmentsStore.getAttachmentUrl(attachment.id)" 
                   :alt="attachment.filename"
-                  class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+                  class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   loading="lazy"
                 />
                 
                 <!-- 悬停叠加层 -->
-                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end">
                   <!-- 文件信息 -->
-                  <div class="absolute bottom-0 left-0 w-full p-3">
-                    <div class="truncate text-white text-sm font-medium">{{ attachment.filename }}</div>
-                    <div class="flex justify-between items-center mt-1 text-xs text-white/70">
+                  <div class="p-3.5">
+                    <div class="truncate text-white text-sm font-medium mb-1">{{ attachment.filename }}</div>
+                    <div class="flex justify-between items-center text-xs text-white/80">
                       <span>{{ formatFileSize(attachment.filesize) }}</span>
+                      <span class="px-1.5 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs">
+                        {{ getFileTypeLabel(attachment.filetype) }}
+                      </span>
                     </div>
                   </div>
                 </div>
                 
                 <!-- 操作按钮 -->
-                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-0 -translate-y-2">
                   <button 
                     @click.stop="downloadFile(attachment)"
-                    class="p-2 bg-white/90 hover:bg-white text-gray-900 rounded-full shadow-lg transition-all"
+                    class="p-2 bg-white/90 hover:bg-white text-gray-900 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
                     title="下载文件"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -562,7 +566,7 @@ const getIconPathByFileType = (filetype) => {
               </div>
               
               <!-- 文件卡片 -->
-              <div v-else class="group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 h-full">
+              <div v-else class="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-300 h-full transform hover:-translate-y-1">
                 <!-- 顶部色带 -->
                 <div class="h-2 bg-gradient-to-r" :class="getGradientByFileType(attachment.filetype)"></div>
                 
@@ -570,15 +574,15 @@ const getIconPathByFileType = (filetype) => {
                   <!-- 图标和文件名 -->
                   <div class="flex items-start mb-3">
                     <!-- 文件类型图标 -->
-                    <div class="flex-shrink-0 p-2 mr-3 rounded-full" :class="getIconBgByFileType(attachment.filetype)">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="flex-shrink-0 p-2.5 mr-3 rounded-full shadow-sm" :class="getIconBgByFileType(attachment.filetype)">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPathByFileType(attachment.filetype)" />
                       </svg>
                     </div>
                     
                     <div class="flex-1 min-w-0">
-                      <div class="truncate font-medium text-gray-800 dark:text-gray-200">{{ attachment.filename }}</div>
-                      <div class="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <div class="truncate font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ attachment.filename }}</div>
+                      <div class="flex items-center mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                         <span class="mr-2">{{ formatFileSize(attachment.filesize) }}</span>
                         <span class="px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                           {{ getFileTypeLabel(attachment.filetype) }}
@@ -588,10 +592,10 @@ const getIconPathByFileType = (filetype) => {
                   </div>
                   
                   <!-- 下载按钮 -->
-                  <div class="flex justify-end mt-2">
+                  <div class="flex justify-end mt-3">
                     <button 
                       @click.stop="downloadFile(attachment)"
-                      class="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-all"
+                      class="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-all group-hover:shadow-sm"
                       title="下载文件"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -606,30 +610,30 @@ const getIconPathByFileType = (filetype) => {
           
           <!-- 列表视图 -->
           <div v-else>
-            <div class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow">
+            <div class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               <div 
                 v-for="attachment in libraryAttachments" 
                 :key="attachment.id"
                 v-show="!searchKeyword || attachment.filename.toLowerCase().includes(searchKeyword.toLowerCase())"
-                class="group border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors duration-200 cursor-pointer"
+                class="group border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-750 transition-all duration-300 cursor-pointer"
                 @click="handleFileClick(attachment)"
               >
-                <div class="p-4 flex items-center">
+                <div class="p-3.5 flex items-center">
                   <!-- 左侧图标/缩略图 -->
                   <div class="mr-4 flex-shrink-0">
                     <!-- 图片缩略图 -->
-                    <div v-if="isImage(attachment.filetype)" class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <div v-if="isImage(attachment.filetype)" class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm group-hover:shadow transition-all duration-300">
                       <img 
                         :src="attachmentsStore.getAttachmentUrl(attachment.id)" 
                         :alt="attachment.filename"
-                        class="w-full h-full object-cover"
+                        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         loading="lazy"
                       />
                     </div>
                     
                     <!-- 文件图标 -->
-                    <div v-else class="w-14 h-14 rounded-lg flex items-center justify-center" :class="getIconBgByFileType(attachment.filetype)">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div v-else class="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow transition-all duration-300" :class="getIconBgByFileType(attachment.filetype)">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPathByFileType(attachment.filetype)" />
                       </svg>
                     </div>
@@ -638,20 +642,21 @@ const getIconPathByFileType = (filetype) => {
                   <!-- 文件信息 -->
                   <div class="flex-grow min-w-0">
                     <div class="flex items-center mb-1">
-                      <div class="truncate font-medium text-gray-800 dark:text-gray-200">{{ attachment.filename }}</div>
+                      <div class="truncate font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ attachment.filename }}</div>
                     </div>
                     <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
                       <span class="mr-3">{{ formatFileSize(attachment.filesize) }}</span>
-                      <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
                         {{ getFileTypeLabel(attachment.filetype) }}
                       </span>
+                      <span class="ml-3 text-gray-400 dark:text-gray-500">{{ formatISODate(attachment.created_at) }}</span>
                     </div>
                   </div>
                   
                   <!-- 下载按钮 -->
                   <button 
                     @click.stop="downloadFile(attachment)"
-                    class="ml-3 p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-all opacity-0 group-hover:opacity-100"
+                    class="ml-3 p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-sm"
                     title="下载文件"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -690,31 +695,34 @@ const getIconPathByFileType = (filetype) => {
                 @click="handleFileClick(attachment)"
               >
                 <!-- 图片预览 -->
-                <div v-if="isImage(attachment.filetype)" class="group relative h-0 pb-[100%] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-md hover:shadow-lg transition-all duration-300">
+                <div v-if="isImage(attachment.filetype)" class="group relative h-0 pb-[100%] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-900 shadow-md hover:shadow-lg transition-all duration-500">
                   <!-- 图片 -->
                   <img 
                     :src="attachmentsStore.getAttachmentUrl(attachment.id)" 
                     :alt="attachment.filename"
-                    class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-110"
+                    class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     loading="lazy"
                   />
                   
                   <!-- 悬停叠加层 -->
-                  <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end">
                     <!-- 文件信息 -->
-                    <div class="absolute bottom-0 left-0 w-full p-3">
-                      <div class="truncate text-white text-sm font-medium">{{ attachment.filename }}</div>
-                      <div class="flex justify-between items-center mt-1 text-xs text-white/70">
+                    <div class="p-3.5">
+                      <div class="truncate text-white text-sm font-medium mb-1">{{ attachment.filename }}</div>
+                      <div class="flex justify-between items-center text-xs text-white/80">
                         <span>{{ formatFileSize(attachment.filesize) }}</span>
+                        <span class="px-1.5 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs">
+                          {{ getFileTypeLabel(attachment.filetype) }}
+                        </span>
                       </div>
                     </div>
                   </div>
                   
                   <!-- 操作按钮 -->
-                  <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-0 -translate-y-2">
                     <button 
                       @click.stop="downloadFile(attachment)"
-                      class="p-2 bg-white/90 hover:bg-white text-gray-900 rounded-full shadow-lg transition-all"
+                      class="p-2 bg-white/90 hover:bg-white text-gray-900 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
                       title="下载文件"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -725,7 +733,7 @@ const getIconPathByFileType = (filetype) => {
                 </div>
                 
                 <!-- 文件卡片 -->
-                <div v-else class="group relative bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 h-full">
+                <div v-else class="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-300 h-full transform hover:-translate-y-1">
                   <!-- 顶部色带 -->
                   <div class="h-2 bg-gradient-to-r" :class="getGradientByFileType(attachment.filetype)"></div>
                   
@@ -733,15 +741,15 @@ const getIconPathByFileType = (filetype) => {
                     <!-- 图标和文件名 -->
                     <div class="flex items-start mb-3">
                       <!-- 文件类型图标 -->
-                      <div class="flex-shrink-0 p-2 mr-3 rounded-full" :class="getIconBgByFileType(attachment.filetype)">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div class="flex-shrink-0 p-2.5 mr-3 rounded-full shadow-sm" :class="getIconBgByFileType(attachment.filetype)">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPathByFileType(attachment.filetype)" />
                         </svg>
                       </div>
                       
                       <div class="flex-1 min-w-0">
-                        <div class="truncate font-medium text-gray-800 dark:text-gray-200">{{ attachment.filename }}</div>
-                        <div class="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <div class="truncate font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ attachment.filename }}</div>
+                        <div class="flex items-center mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                           <span class="mr-2">{{ formatFileSize(attachment.filesize) }}</span>
                           <span class="px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                             {{ getFileTypeLabel(attachment.filetype) }}
@@ -751,10 +759,10 @@ const getIconPathByFileType = (filetype) => {
                     </div>
                     
                     <!-- 下载按钮 -->
-                    <div class="flex justify-end mt-2">
+                    <div class="flex justify-end mt-3">
                       <button 
                         @click.stop="downloadFile(attachment)"
-                        class="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-all"
+                        class="p-1.5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-all group-hover:shadow-sm"
                         title="下载文件"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -768,46 +776,60 @@ const getIconPathByFileType = (filetype) => {
             </div>
             
             <!-- 列表视图 -->
-            <div v-else class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow">
+            <div v-else class="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
               <div 
                 v-for="attachment in (attachmentsByDate[group.date?.split('T')[0] || group.date]?.attachments || [])" 
                 :key="attachment.id"
                 v-show="!searchKeyword || attachment.filename.toLowerCase().includes(searchKeyword.toLowerCase())"
-                class="p-3 flex items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group border-b border-gray-100 dark:border-gray-700 last:border-0"
+                class="group border-b border-gray-100 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-750 transition-all duration-300 cursor-pointer"
                 @click="handleFileClick(attachment)"
               >
-                <!-- 文件图标或缩略图 -->
-                <div v-if="isImage(attachment.filetype)" class="mr-4 w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                  <img 
-                    :src="attachmentsStore.getAttachmentUrl(attachment.id)" 
-                    :alt="attachment.filename"
-                    class="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                <div v-else class="mr-4 w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center flex-shrink-0">
-                  <i :class="[getFileIcon(attachment.filetype), getFileColor(attachment.filetype)]"></i>
-                </div>
-                
-                <!-- 文件信息 -->
-                <div class="flex-grow min-w-0">
-                  <div class="truncate font-medium text-gray-700 dark:text-gray-300 text-sm">{{ attachment.filename }}</div>
-                  <div class="flex items-center text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
-                    <span class="mr-2">{{ formatFileSize(attachment.filesize) }}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                      {{ getFileTypeLabel(attachment.filetype) }}
-                    </span>
+                <div class="p-3.5 flex items-center">
+                  <!-- 左侧图标/缩略图 -->
+                  <div class="mr-4 flex-shrink-0">
+                    <!-- 图片缩略图 -->
+                    <div v-if="isImage(attachment.filetype)" class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm group-hover:shadow transition-all duration-300">
+                      <img 
+                        :src="attachmentsStore.getAttachmentUrl(attachment.id)" 
+                        :alt="attachment.filename"
+                        class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    </div>
+                    
+                    <!-- 文件图标 -->
+                    <div v-else class="w-12 h-12 rounded-lg flex items-center justify-center shadow-sm group-hover:shadow transition-all duration-300" :class="getIconBgByFileType(attachment.filetype)">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getIconPathByFileType(attachment.filetype)" />
+                      </svg>
+                    </div>
                   </div>
+                  
+                  <!-- 文件信息 -->
+                  <div class="flex-grow min-w-0">
+                    <div class="flex items-center mb-1">
+                      <div class="truncate font-medium text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{{ attachment.filename }}</div>
+                    </div>
+                    <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                      <span class="mr-3">{{ formatFileSize(attachment.filesize) }}</span>
+                      <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                        {{ getFileTypeLabel(attachment.filetype) }}
+                      </span>
+                      <span class="ml-3 text-gray-400 dark:text-gray-500">{{ formatISODate(attachment.created_at) }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 下载按钮 -->
+                  <button 
+                    @click.stop="downloadFile(attachment)"
+                    class="ml-3 p-2 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-sm"
+                    title="下载文件"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
                 </div>
-                
-                <!-- 下载按钮 -->
-                <button 
-                  class="ml-2 p-2 text-gray-400 hover:text-primary-500 dark:hover:text-primary-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                  @click.stop="downloadFile(attachment)"
-                  aria-label="下载文件"
-                >
-                  <i class="fas fa-download"></i>
-                </button>
               </div>
             </div>
           </div>
@@ -815,20 +837,22 @@ const getIconPathByFileType = (filetype) => {
         
         <!-- 分页控制 -->
         <div v-if="libraryAttachments.length > pageSize" class="mt-8 flex justify-center">
-          <div class="inline-flex rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow divide-x divide-gray-200 dark:divide-gray-700">
+          <div class="inline-flex rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-md divide-x divide-gray-200 dark:divide-gray-700 border border-gray-100 dark:border-gray-700">
             <!-- 上一页 -->
             <button 
               @click="currentPage > 1 ? (currentPage--, fetchLibrary()) : null" 
               :disabled="currentPage <= 1"
-              class="px-4 py-2 flex items-center transition-colors duration-200"
-              :class="currentPage <= 1 ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'"
+              class="px-4 py-2.5 flex items-center transition-all duration-300"
+              :class="currentPage <= 1 ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'"
             >
-              <i class="fas fa-chevron-left mr-1 text-xs"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
               <span>上一页</span>
             </button>
             
             <!-- 页码显示 -->
-            <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center">
+            <div class="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium flex items-center shadow-inner">
               {{ currentPage }} / {{ Math.ceil(libraryAttachments.length / pageSize) }}
             </div>
             
@@ -836,11 +860,13 @@ const getIconPathByFileType = (filetype) => {
             <button 
               @click="currentPage < Math.ceil(libraryAttachments.length / pageSize) ? (currentPage++, fetchLibrary()) : null" 
               :disabled="currentPage >= Math.ceil(libraryAttachments.length / pageSize)"
-              class="px-4 py-2 flex items-center transition-colors duration-200"
-              :class="currentPage >= Math.ceil(libraryAttachments.length / pageSize) ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'"
+              class="px-4 py-2.5 flex items-center transition-all duration-300"
+              :class="currentPage >= Math.ceil(libraryAttachments.length / pageSize) ? 'text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'"
             >
               <span>下一页</span>
-              <i class="fas fa-chevron-right ml-1 text-xs"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
         </div>
@@ -857,17 +883,17 @@ const getIconPathByFileType = (filetype) => {
       </div>
     </div>
     
-    <!-- 图片查看器 - 完全复制自NoteDetail.vue -->
+    <!-- 图片查看器 -->
     <div v-if="showImageViewer" class="fixed inset-0 z-50" @click.self="closeImageViewer">
       <!-- 玻璃态背景 -->
-      <div class="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
+      <div class="absolute inset-0 bg-black/90 backdrop-blur-md"></div>
       
       <!-- 主内容区 -->
       <div class="relative z-10 w-full h-full flex flex-col">
         
         <!-- 顶部工具栏 -->
         <div class="flex items-center justify-between p-4 bg-gradient-to-b from-black/80 to-transparent">
-          <h3 class="text-white text-lg font-medium truncate max-w-[60%] opacity-80" v-if="currentImage">
+          <h3 class="text-white text-lg font-medium truncate max-w-[60%] opacity-90" v-if="currentImage">
             {{ currentImage.filename }}
           </h3>
           
@@ -875,7 +901,7 @@ const getIconPathByFileType = (filetype) => {
             <button 
               v-if="currentImage"
               @click.stop="downloadFile(currentImage)"
-              class="bg-black/25 hover:bg-blue-600/90 text-white p-2.5 rounded-full transition-all shadow-lg"
+              class="bg-blue-600/90 hover:bg-blue-700 text-white p-2.5 rounded-full transition-all shadow-lg hover:shadow-xl hover:scale-105"
               title="下载图片"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -884,7 +910,7 @@ const getIconPathByFileType = (filetype) => {
             </button>
             <button 
               @click.stop="closeImageViewer"
-              class="bg-black/25 hover:bg-red-600/90 text-white p-2.5 rounded-full transition-all shadow-lg"
+              class="bg-red-600/90 hover:bg-red-700 text-white p-2.5 rounded-full transition-all shadow-lg hover:shadow-xl hover:scale-105"
               title="关闭"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -902,16 +928,17 @@ const getIconPathByFileType = (filetype) => {
               v-if="currentImage"
               :src="attachmentsStore.getAttachmentUrl(currentImage.id)" 
               :alt="currentImage.filename"
-              class="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl transition-all duration-300"
+              class="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl transition-all duration-500"
             />
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent to-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </div>
         </div>
       </div>
       
       <!-- 移动端专用底部工具栏 -->
       <div class="fixed bottom-8 left-0 right-0 flex justify-center z-30 sm:hidden">
-        <div class="flex items-center px-5 py-2 rounded-full bg-gray-900/70 backdrop-blur-sm shadow-xl">
-          <div class="text-white/80 text-sm truncate max-w-[60vw]" v-if="currentImage">
+        <div class="flex items-center px-5 py-2.5 rounded-full bg-gray-900/70 backdrop-blur-sm shadow-xl">
+          <div class="text-white/90 text-sm truncate max-w-[60vw]" v-if="currentImage">
             {{ currentImage.filename }}
           </div>
         </div>
@@ -945,47 +972,61 @@ const getIconPathByFileType = (filetype) => {
   aspect-ratio: 1 / 1;
 }
 
-/* 加载动画 */
-.loader {
+/* 波纹加载动画 */
+.loader-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ripple-loader {
+  display: inline-block;
   position: relative;
-  width: 30px;
-  height: 30px;
+  width: 80px;
+  height: 80px;
 }
 
-.circular-loader {
-  animation: rotate 2s linear infinite;
-  transform-origin: center center;
-  height: 100%;
-  width: 100%;
+.ripple-loader div {
+  position: absolute;
+  border: 4px solid;
+  @apply border-blue-500 dark:border-blue-400;
+  opacity: 1;
+  border-radius: 50%;
+  animation: ripple-loader 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
 }
 
-.loader-path {
-  stroke: var(--tw-ring-color, #3b82f6);
-  stroke-width: 3;
-  stroke-dasharray: 150, 200;
-  stroke-dashoffset: -10;
-  animation: dash 1.5s ease-in-out infinite;
-  stroke-linecap: round;
+.ripple-loader div:nth-child(2) {
+  animation-delay: -0.5s;
 }
 
-@keyframes rotate {
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes dash {
+@keyframes ripple-loader {
   0% {
-    stroke-dasharray: 1, 200;
-    stroke-dashoffset: 0;
+    top: 36px;
+    left: 36px;
+    width: 0;
+    height: 0;
+    opacity: 0;
   }
-  50% {
-    stroke-dasharray: 90, 200;
-    stroke-dashoffset: -35px;
+  4.9% {
+    top: 36px;
+    left: 36px;
+    width: 0;
+    height: 0;
+    opacity: 0;
+  }
+  5% {
+    top: 36px;
+    left: 36px;
+    width: 0;
+    height: 0;
+    opacity: 1;
   }
   100% {
-    stroke-dasharray: 90, 200;
-    stroke-dashoffset: -125px;
+    top: 0px;
+    left: 0px;
+    width: 72px;
+    height: 72px;
+    opacity: 0;
   }
 }
 

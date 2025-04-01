@@ -10,7 +10,7 @@
           class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm dark:bg-gray-700 dark:text-white"
           @keydown.enter="addTagFromInput"
           @focus="showSuggestions = true"
-          @blur="setTimeout(() => showSuggestions = false, 200)"
+          @blur="() => { window.setTimeout(() => showSuggestions = false, 200) }"
         >
         <button 
           @click="addTagFromInput"
@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed, inject, watch } from 'vue';
+import { ref, defineProps, defineEmits, computed, inject, watch, onMounted } from 'vue';
 import { useTagsStore } from '@/stores/tags';
 
 const props = defineProps({
@@ -173,7 +173,8 @@ const removeTag = (tagId) => {
 };
 
 // 在组件挂载时加载标签
-if (availableTags.value.length === 0) {
+onMounted(() => {
+  // 确保标签被加载
   tagsStore.fetchTags();
-}
+});
 </script> 

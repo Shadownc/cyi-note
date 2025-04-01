@@ -7,13 +7,20 @@ export const useTagsStore = defineStore('tags', () => {
   const tags = ref([])
   const isLoading = ref(false)
 
+  // 确保tags始终是数组
+  if (tags.value === null || tags.value === undefined) {
+    tags.value = []
+  }
+
   // 获取所有标签
   async function fetchTags() {
     isLoading.value = true
     try {
-      tags.value = await api.tags.getTags()
+      const response = await api.tags.getTags()
+      tags.value = Array.isArray(response) ? response : []
     } catch (error) {
       console.error('获取标签失败:', error)
+      tags.value = []
     } finally {
       isLoading.value = false
     }
@@ -24,6 +31,10 @@ export const useTagsStore = defineStore('tags', () => {
     isLoading.value = true
     try {
       const newTag = await api.tags.createTag(tagData)
+      // 确保tags.value是数组
+      if (!tags.value) {
+        tags.value = []
+      }
       tags.value.push(newTag)
       return newTag
     } catch (error) {

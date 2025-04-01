@@ -31,15 +31,18 @@
       <span 
         v-for="tag in note.tags" 
         :key="tag.id" 
-        class="px-2 py-1 bg-primary-100 dark:bg-primary-700/50 text-primary-800 dark:text-primary-100 text-xs rounded-full inline-flex items-center"
+        class="px-2 py-1 bg-primary-100 dark:bg-primary-600 text-primary-800 dark:text-white text-xs rounded-full inline-flex items-center shadow-sm"
       >
-        <span class="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-300 mr-1 inline-block"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-white mr-1 inline-block"></span>
         {{ tag.name }}
       </span>
     </div>
 
-    <!-- 笔记内容 - Markdown渲染 -->
-    <div class="prose dark:prose-invert sm:prose-sm md:prose-base max-w-none overflow-hidden dark:bg-gray-800/30 dark:p-4 dark:rounded-lg animate-fadeIn" v-html="renderedContent" ref="contentRef"></div>
+    <!-- 笔记内容 - 使用MarkdownRenderer组件 -->
+    <MarkdownRenderer 
+      :content="note.content" 
+      class="prose dark:prose-invert sm:prose-sm md:prose-base max-w-none overflow-hidden dark:bg-gray-800/30 dark:p-4 dark:rounded-lg animate-fadeIn"
+    />
 
     <!-- 附件区域 -->
     <div v-if="note.attachments && note.attachments.length > 0" class="mt-6 border-t dark:border-gray-700 pt-4">
@@ -251,8 +254,8 @@
 
 <script setup>
 import { ref, defineProps, defineEmits, onMounted, watch, onUnmounted, nextTick, computed } from 'vue';
-import { marked } from 'marked';
 import { useAttachmentsStore } from '@/stores/attachments';
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue';
 
 const props = defineProps({
   note: {
@@ -263,10 +266,8 @@ const props = defineProps({
 
 defineEmits(['edit', 'delete']);
 
-const renderedContent = ref('');
 const showScrollToTop = ref(false);
 const showCopySuccess = ref(false);
-const contentRef = ref(null);
 const showImageViewer = ref(false);
 const currentImageAttachment = ref(null);
 const currentImageUrl = computed(() => {
@@ -342,86 +343,6 @@ const formatDate = (dateString, shortFormat = false) => {
       return `${month}月${day}日 ${hours}:${minutes}`;
     }
     return `${year}年${month}月${day}日 ${hours}:${minutes}`;
-  }
-};
-
-// 自定义Markdown渲染器，添加复制按钮到代码块
-const setupMarked = () => {
-  const renderer = new marked.Renderer();
-  
-  // 保存原始代码块渲染方法
-  const originalCodeRenderer = renderer.code;
-  
-  // 自定义代码块渲染
-  renderer.code = function(code, language, isEscaped) {
-    // 调用原始渲染方法获取HTML
-    const html = originalCodeRenderer.call(this, code, language, isEscaped);
-    
-    // 添加复制按钮包装器
-    return `
-      <div class="code-block-wrapper relative group">
-        <button class="code-copy-btn absolute top-2 right-2 bg-gray-700 dark:bg-gray-600 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity" data-code="${encodeURIComponent(code)}">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-          </svg>
-        </button>
-        ${html}
-      </div>
-    `;
-  };
-  
-  // 修改链接渲染，使链接在新标签页打开
-  const originalLinkRenderer = renderer.link;
-  renderer.link = function(href, title, text) {
-    const html = originalLinkRenderer.call(this, href, title, text);
-    // 替换target属性为_blank，并添加rel="noopener noreferrer"以提高安全性
-    return html.replace('<a ', '<a target="_blank" rel="noopener noreferrer" ');
-  };
-  
-  marked.setOptions({
-    renderer: renderer,
-    highlight: function(code, lang) {
-      return code;
-    },
-    gfm: true,
-    breaks: true
-  });
-};
-
-// 为代码块添加复制功能
-const addCopyFunctionality = () => {
-  const copyButtons = document.querySelectorAll('.code-copy-btn');
-  
-  copyButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const code = decodeURIComponent(btn.getAttribute('data-code'));
-      copyToClipboard(code);
-      e.stopPropagation();
-    });
-  });
-};
-
-// 复制文本到剪贴板
-const copyToClipboard = async (text) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    showCopySuccess.value = true;
-    setTimeout(() => {
-      showCopySuccess.value = false;
-    }, 2000);
-  } catch (err) {
-    console.error('无法复制到剪贴板:', err);
-    // 降级方案
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textArea);
-    showCopySuccess.value = true;
-    setTimeout(() => {
-      showCopySuccess.value = false;
-    }, 2000);
   }
 };
 
@@ -585,42 +506,12 @@ const scrollToTop = () => {
   });
 };
 
-// 监听链接点击事件，确保所有链接在新标签页打开
-const setupLinkBehavior = () => {
-  if (!contentRef.value) return;
-  
-  const links = contentRef.value.querySelectorAll('a');
-  links.forEach(link => {
-    // 如果链接没有target属性或target不是_blank，则设置为在新标签页打开
-    if (!link.hasAttribute('target') || link.getAttribute('target') !== '_blank') {
-      link.setAttribute('target', '_blank');
-      link.setAttribute('rel', 'noopener noreferrer');
-    }
-  });
-};
-
-// 渲染Markdown内容
-const renderContent = () => {
-  if (props.note && props.note.content) {
-    setupMarked();
-    renderedContent.value = marked(props.note.content);
-    
-    nextTick(() => {
-      addCopyFunctionality();
-      setupLinkBehavior();
-    });
-  }
-};
-
-// 监听props变化重新渲染
-watch(() => props.note, () => {
-  renderContent();
-}, { deep: true });
-
 // 组件加载时渲染内容和预加载图片
 onMounted(() => {
-  renderContent();
   window.addEventListener('scroll', handleScroll);
+  
+  // 监听复制成功事件
+  window.addEventListener('markdown-copy-success', handleCopySuccess);
   
   // 预加载笔记中的图片附件
   if (props.note && props.note.attachments) {
@@ -636,6 +527,9 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
   
+  // 移除复制成功事件监听器
+  window.removeEventListener('markdown-copy-success', handleCopySuccess);
+  
   // 释放所有Blob URL
   Object.values(attachmentBlobUrls.value).forEach(url => {
     if (url && url.startsWith('blob:')) {
@@ -649,6 +543,14 @@ onUnmounted(() => {
     document.body.style.overflow = '';
   }
 });
+
+// 处理复制成功事件
+const handleCopySuccess = () => {
+  showCopySuccess.value = true;
+  setTimeout(() => {
+    showCopySuccess.value = false;
+  }, 2000);
+};
 
 // 处理图片加载完成
 const handleImageLoaded = () => {
@@ -735,7 +637,7 @@ const toggleZoom = () => {
   @apply border border-gray-700 px-4 py-2;
 }
 
-/* 代码块复制按钮样式 */
+/* 代码块复制按钮样式 - 这些样式现在由MarkdownRenderer组件提供，可以删除或保留 */
 :deep(.code-block-wrapper) {
   position: relative;
 }
@@ -791,5 +693,17 @@ const toggleZoom = () => {
   to {
     opacity: 1;
   }
+}
+
+/* 增强暗色模式下标签的可见性 */
+.dark :deep(.flex-wrap .bg-primary-600) {
+  background-color: rgba(79, 70, 229, 0.9) !important; /* 更亮更饱和的背景 */
+  color: #ffffff !important; /* 纯白色文字 */
+  font-weight: 600 !important; /* 加粗 */
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5) !important; /* 添加文字阴影增强可读性 */
+  border: 1px solid rgba(255, 255, 255, 0.3) !important; /* 添加亮色边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important; /* 添加阴影增强层次感 */
+  font-size: 0.85rem !important; /* 稍微增大字体 */
+  padding: 0.3rem 0.6rem !important; /* 增加内边距 */
 }
 </style> 

@@ -1,21 +1,21 @@
 <template>
-  <div class="bg-card dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg p-5 border border-border dark:border-gray-700 transition duration-300 hover:border-primary-500 dark:hover:border-primary-400 cursor-pointer group dark:shadow-gray-900/30" @click="navigateToNoteDetail">
+  <div class="bg-card dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg p-5 border border-border dark:border-gray-700 transition duration-300 hover:border-primary-500 dark:hover:border-primary-400 cursor-pointer group dark:shadow-gray-900/30 h-[230px] flex flex-col" @click="navigateToNoteDetail">
     <div class="flex justify-between items-start mb-3">
-      <h3 class="text-lg font-semibold text-text-primary dark:text-gray-50 group-hover:text-primary-600 dark:group-hover:text-primary-300 transition-colors">{{ note.title }}</h3>
+      <h3 class="text-lg font-semibold text-text-primary dark:text-gray-50 group-hover:text-primary-600 dark:group-hover:text-primary-300 transition-colors truncate mr-2">{{ note.title }}</h3>
       <span class="text-sm text-text-secondary dark:text-gray-400 ml-2 shrink-0">{{ formatDate(note.created_at) }}</span>
     </div>
-    <p class="text-text-secondary dark:text-gray-300 text-sm mb-4 line-clamp-2">{{ notePreview }}</p>
-    <div class="flex flex-wrap gap-2">
+    <p class="text-text-secondary dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-grow">{{ notePreview }}</p>
+    <div class="flex flex-wrap gap-2 mb-2">
       <span 
         v-for="tag in note.tags" 
         :key="tag.id" 
-        class="px-2 py-1 bg-primary-100 dark:bg-primary-700 dark:bg-opacity-50 text-primary-800 dark:text-primary-100 text-xs rounded-full inline-flex items-center"
+        class="px-2 py-1 bg-primary-100 dark:bg-primary-600 text-primary-800 dark:text-white text-xs rounded-full inline-flex items-center shadow-sm"
       >
-        <span class="w-2 h-2 rounded-full bg-primary-600 dark:bg-primary-300 mr-1"></span>
+        <span class="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-white mr-1 inline-block"></span>
         {{ tag.name }}
       </span>
     </div>
-    <div class="flex justify-between items-center mt-4 pt-3 border-t border-border dark:border-gray-700">
+    <div class="flex justify-between items-center mt-auto pt-3 border-t border-border dark:border-gray-700">
       <div class="text-xs text-text-tertiary dark:text-gray-400">更新于: {{ formatDate(note.updated_at, true) }}</div>
       <button class="text-primary-600 dark:text-primary-300 text-sm hover:text-primary-700 dark:hover:text-primary-200 transition-colors font-medium" @click.stop="navigateToNoteDetail">阅读更多</button>
     </div>
@@ -26,6 +26,7 @@
 import { defineProps } from 'vue';
 import { useRouter } from 'vue-router';
 import { computed } from 'vue';
+import { formatDate } from '@/utils/dateUtils';
 
 const props = defineProps({
   note: {
@@ -77,62 +78,6 @@ const stripMarkdown = (markdownText) => {
   plainText = plainText.replace(/^\s*\d+\.\s+/gm, '');
   
   return plainText;
-};
-
-const formatDate = (dateString, showTime = false) => {
-  console.log('NoteCard 格式化日期，原始值:', dateString);
-  
-  if (!dateString) {
-    console.warn('日期字符串为空或无效');
-    return '无日期';
-  }
-  
-  // 尝试修复日期格式
-  let fixedDateString = dateString;
-  if (typeof dateString === 'string' && dateString.includes('T')) {
-    // 确保日期字符串有Z或时区
-    if (!dateString.includes('Z') && !dateString.includes('+')) {
-      fixedDateString = dateString + 'Z';
-    }
-  }
-  
-  const date = new Date(fixedDateString);
-  console.log('NoteCard 转换后的日期对象:', date);
-  
-  if (isNaN(date.getTime())) {
-    console.warn('日期解析失败:', dateString);
-    return '日期无效';
-  }
-  
-  try {
-    if (showTime) {
-      return date.toLocaleDateString('zh-CN', { 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    return date.toLocaleDateString('zh-CN', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  } catch (e) {
-    console.error('日期格式化错误:', e);
-    
-    // 降级方案：手动格式化
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    
-    if (showTime) {
-      return `${month}月${day}日 ${hours}:${minutes}`;
-    }
-    return `${year}年${month}月${day}日`;
-  }
 };
 </script>
 

@@ -50,11 +50,11 @@
     </div>
 
     <!-- 附件列表 -->
-    <div v-if="attachments.length > 0">
+    <div v-if="displayAttachments.length > 0">
       <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">附件列表</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <div
-          v-for="attachment in attachments"
+          v-for="attachment in displayAttachments"
           :key="attachment.id"
           class="attachment-item border dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
         >
@@ -68,15 +68,24 @@
                 src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgb3BhY2l0eT0iMC4yNSIvPjxwYXRoIGQ9Ik0xNi4yNCAxNy43OEE5IDkgMCAwIDEgNS43NiA2LjIyIiBvcGFjaXR5PSIwLjc1Ii8+PC9zdmc+"
                 alt="加载中"
               />
-              <!-- 图片内容 -->
+              <!-- 图片内容 - 正常模式 -->
               <img
-                v-else-if="!imageErrors[attachment.id] && attachmentBlobUrls[attachment.id]"
+                v-else-if="!imageErrors[attachment.id] && attachmentBlobUrls[attachment.id] && !tempMode"
                 :src="attachmentBlobUrls[attachment.id]"
                 :alt="attachment.filename"
                 class="w-full h-full object-cover cursor-pointer"
                 @click.stop.prevent="openImageViewer(attachment)"
                 loading="lazy"
                 @error="handleAttachmentImageError(attachment)"
+              />
+              <!-- 图片内容 - 临时模式 -->
+              <img
+                v-else-if="tempMode && attachment.previewUrl"
+                :src="attachment.previewUrl"
+                :alt="attachment.filename"
+                class="w-full h-full object-cover cursor-pointer"
+                @click.stop.prevent="openImageViewer(attachment)"
+                loading="lazy"
               />
               <!-- 加载失败状态 -->
               <div v-else-if="imageErrors[attachment.id]" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-200 dark:bg-gray-700">
@@ -98,6 +107,7 @@
                 @click.stop.prevent="downloadAttachment(attachment)"
                 class="bg-gray-800/70 hover:bg-gray-900/70 text-white rounded p-1 transition-colors"
                 title="下载"
+                v-if="!tempMode"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -137,6 +147,7 @@
             <div class="flex space-x-1">
               <button
                 type="button"
+                v-if="!tempMode"
                 @click.stop.prevent="downloadAttachment(attachment)"
                 class="bg-primary-500 hover:bg-primary-600 text-white rounded p-1 transition-colors"
                 title="下载"
@@ -277,6 +288,10 @@ const props = defineProps({
   canDelete: {
     type: Boolean,
     default: true
+  },
+  tempMode: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -298,6 +313,7 @@ const imageErrors = ref({});
 const imageError = ref(false);
 const currentImageUrl = ref('');
 const attachmentBlobUrls = ref({});
+const tempAttachments = ref([]); // 暂存附件数组
 
 // 触发文件选择
 const triggerFileInput = (e) => {
@@ -345,7 +361,7 @@ const handleFileChange = (event) => {
 
 // 上传文件
 const uploadFiles = async (files) => {
-  if (!props.noteId || isUploading.value) {
+  if ((!props.noteId && !props.tempMode) || isUploading.value) {
     console.log('无法上传: 笔记ID不存在或已有上传进行中');
     return;
   }
@@ -357,13 +373,42 @@ const uploadFiles = async (files) => {
     // 一次上传一个文件
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`上传文件 ${i+1}/${files.length}:`, file.name, '到笔记ID:', props.noteId);
-      await attachmentsStore.uploadAttachment(file, props.noteId);
+      console.log(`上传文件 ${i+1}/${files.length}:`, file.name);
+      
+      if (props.tempMode) {
+        // 临时模式，只在本地保存文件
+        console.log('临时模式，暂存文件:', file.name);
+        
+        // 生成预览URL
+        const previewUrl = URL.createObjectURL(file);
+        
+        // 创建临时附件对象
+        const tempAttachment = {
+          id: 'temp_' + Date.now() + '_' + i, // 生成临时ID
+          file: file, // 存储原始文件对象
+          filename: file.name,
+          filetype: file.type,
+          filesize: file.size,
+          previewUrl: previewUrl,
+          createdAt: new Date().toISOString()
+        };
+        
+        // 添加到临时数组
+        tempAttachments.value.push(tempAttachment);
+        
+        // 触发上传成功事件，将文件数据传给父组件
+        emit('upload-success', null, tempAttachment);
+      } else {
+        // 正常模式，上传到服务器
+        await attachmentsStore.uploadAttachment(file, props.noteId);
+        
+        // 触发上传成功事件
+        emit('upload-success');
+      }
     }
     
-    console.log('所有文件上传成功');
-    // 上传成功后通知父组件，但不进行页面跳转
-    emit('upload-success');
+    console.log('所有文件处理完成');
+    
     // 清空文件输入控件，以便下次可以选择相同的文件
     if (fileInput.value) {
       fileInput.value.value = ''; 
@@ -404,13 +449,39 @@ const deleteAttachmentConfirmed = async (event) => {
   }
   
   try {
-    console.log('开始删除附件:', attachmentToDelete.value.id);
-    await attachmentsStore.deleteAttachment(attachmentToDelete.value.id);
-    console.log('附件删除成功');
-    showDeleteConfirm.value = false;
-    attachmentToDelete.value = null;
-    // 仅通知父组件删除成功，不进行页面跳转
-    emit('delete-success');
+    if (props.tempMode) {
+      // 临时模式下删除附件
+      console.log('临时模式，删除暂存附件:', attachmentToDelete.value.id);
+      
+      // 从临时数组中移除
+      tempAttachments.value = tempAttachments.value.filter(
+        attachment => attachment.id !== attachmentToDelete.value.id
+      );
+      
+      // 如果有blob URL，释放它
+      if (attachmentToDelete.value.previewUrl) {
+        URL.revokeObjectURL(attachmentToDelete.value.previewUrl);
+      }
+      
+      console.log('临时附件删除成功');
+      showDeleteConfirm.value = false;
+      
+      // 保存删除的附件引用
+      const deletedAttachment = { ...attachmentToDelete.value };
+      attachmentToDelete.value = null;
+      
+      // 通知父组件删除成功，并传递删除的附件数据
+      emit('delete-success', null, deletedAttachment);
+    } else {
+      // 常规模式下删除附件
+      console.log('开始删除附件:', attachmentToDelete.value.id);
+      await attachmentsStore.deleteAttachment(attachmentToDelete.value.id);
+      console.log('附件删除成功');
+      showDeleteConfirm.value = false;
+      attachmentToDelete.value = null;
+      // 仅通知父组件删除成功，不进行页面跳转
+      emit('delete-success');
+    }
   } catch (error) {
     console.error('删除附件失败:', error);
     alert('删除附件失败: ' + (error.message || '请稍后重试'));
@@ -456,6 +527,20 @@ const openImageViewer = (attachment, event) => {
   imageLoading.value = true;
   imageError.value = false;
   currentImageAttachment.value = attachment;
+  
+  if (props.tempMode && attachment.previewUrl) {
+    // 临时模式，直接使用预览URL
+    console.log('使用临时预览URL:', attachment.previewUrl);
+    currentImageUrl.value = attachment.previewUrl;
+    imageLoading.value = false;
+    
+    // 打开查看器
+    showImageViewer.value = true;
+    
+    // 禁止body滚动
+    document.body.style.overflow = 'hidden';
+    return;
+  }
   
   // 获取带认证的图片URL
   const token = localStorage.getItem('token');
@@ -564,10 +649,19 @@ const formatFileSize = (size) => {
   }
 };
 
+// 计算属性：显示的附件列表（根据模式选择服务器附件或临时附件）
+const displayAttachments = computed(() => {
+  if (props.tempMode) {
+    return tempAttachments.value;
+  } else {
+    return attachments.value;
+  }
+});
+
 // 加载笔记的附件
 onMounted(async () => {
-  console.log('附件管理器挂载，笔记ID:', props.noteId);
-  if (props.noteId) {
+  console.log('附件管理器挂载，笔记ID:', props.noteId, '临时模式:', props.tempMode);
+  if (props.noteId && !props.tempMode) {
     try {
       await attachmentsStore.fetchAttachments(props.noteId);
       console.log('附件加载完成，数量:', attachments.value.length);
