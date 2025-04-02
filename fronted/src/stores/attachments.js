@@ -87,6 +87,100 @@ export const useAttachmentsStore = defineStore('attachments', () => {
     uploadProgress.value = progress
   }
 
+  // 上传临时附件（不关联到笔记）
+  async function uploadTempAttachment(file) {
+    if (!file) return null;
+    
+    isLoading.value = true;
+    uploadProgress.value = 0;
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 获取认证令牌
+      const token = localStorage.getItem('token');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // 使用相对路径和认证头
+      const response = await fetch('/api/attachments/temp', {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `上传失败: ${response.status} ${response.statusText}`);
+      }
+      
+      const responseData = await response.json();
+      console.log('临时附件上传响应:', responseData);
+      
+      // 获取响应中的数据
+      // backend返回的数据结构为：{ data: { id, url, filename, filetype, filesize, success }, message, status }
+      // 或者是：{ id, url, filename, filetype, filesize, success } (取决于后端实现)
+      const data = responseData.data || responseData;
+      
+      // 确认返回数据包含成功标志
+      if (!data.success) {
+        throw new Error(responseData.error || data.error || '服务器未返回成功状态');
+      }
+      
+      // 返回处理后的结果
+      return {
+        id: data.id,
+        url: data.url || '', // 确保url存在，即使为空字符串
+        filename: data.filename,
+        success: true
+      };
+    } catch (error) {
+      console.error('上传临时附件失败:', error);
+      throw error;
+    } finally {
+      isLoading.value = false;
+      uploadProgress.value = 0;
+    }
+  }
+  
+  // 关联临时附件到笔记
+  async function associateTempAttachment(tempId, noteId) {
+    if (!tempId || !noteId) return false
+    
+    isLoading.value = true
+    try {
+      // 获取认证令牌
+      const token = localStorage.getItem('token')
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      
+      // 使用相对路径访问API
+      const response = await fetch(`/api/attachments/temp/${tempId}/associate`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ noteId })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`关联失败: ${response.status} ${response.statusText}`)
+      }
+      
+      return await response.json()
+    } catch (error) {
+      console.error(`关联临时附件 ${tempId} 到笔记 ${noteId} 失败:`, error)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   // 获取资源库文件（按日期分组）
   async function fetchLibraryAttachments(page = 1, pageSize = 20, fileType = '') {
     isLoading.value = true
@@ -142,6 +236,8 @@ export const useAttachmentsStore = defineStore('attachments', () => {
     getAttachmentUrl,
     downloadAttachment,
     updateUploadProgress,
-    fetchLibraryAttachments
+    fetchLibraryAttachments,
+    uploadTempAttachment,
+    associateTempAttachment
   }
 }) 

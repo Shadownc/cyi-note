@@ -53,6 +53,20 @@ func InitDB(cfg config.DatabaseConfig) error {
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 	
+	// 禁用外键约束检查
+	if cfg.Type == "mysql" {
+		db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+		log.Println("暂时禁用外键检查，以便进行迁移")
+	}
+	
+	// 强制删除attachments表并重新创建
+	log.Println("正在强制同步数据库表结构...")
+	if err := db.Migrator().DropTable(&Attachment{}); err != nil {
+		log.Printf("警告：删除附件表失败: %v", err)
+	} else {
+		log.Println("成功删除附件表，将重新创建")
+	}
+	
 	// 自动迁移数据库表结构
 	err = db.AutoMigrate(
 		&User{},
@@ -63,6 +77,12 @@ func InitDB(cfg config.DatabaseConfig) error {
 	
 	if err != nil {
 		return err
+	}
+	
+	// 恢复外键约束
+	if cfg.Type == "mysql" {
+		db.Exec("SET FOREIGN_KEY_CHECKS = 1")
+		log.Println("重新启用外键检查")
 	}
 	
 	DB = db

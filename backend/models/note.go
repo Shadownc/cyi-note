@@ -13,12 +13,13 @@ type Note struct {
 	Title     string         `gorm:"size:255;not null" json:"title"`
 	Content   string         `gorm:"type:text" json:"content"`
 	Summary   string         `gorm:"size:500" json:"summary"` // AI生成的摘要
+	IsPublic  bool           `gorm:"default:false" json:"is_public"` // 笔记是否公开
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	
 	// 关联
-	User        User          `gorm:"foreignKey:UserID" json:"-"`
+	User        User          `gorm:"foreignKey:UserID" json:"user"`
 	Tags        []*Tag        `gorm:"many2many:note_tags;" json:"tags"`
 	Attachments []Attachment  `gorm:"foreignKey:NoteID" json:"attachments"`
 }
@@ -146,4 +147,26 @@ type NoteTag struct {
 // TableName 指定表名
 func (NoteTag) TableName() string {
 	return "note_tags"
+}
+
+// GetPublicNotes 获取所有公开的笔记
+func GetPublicNotes(page, pageSize int) ([]Note, int64, error) {
+	var notes []Note
+	var total int64
+	
+	query := DB.Model(&Note{}).Where("is_public = ?", true)
+	
+	// 获取总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// 分页查询
+	offset := (page - 1) * pageSize
+	err := query.Offset(offset).Limit(pageSize).Order("created_at DESC").
+		Preload("Tags").Preload("User", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, username") // 只获取用户ID和用户名
+		}).Preload("Attachments").Find(&notes).Error
+	
+	return notes, total, err
 } 

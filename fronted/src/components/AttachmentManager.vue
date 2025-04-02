@@ -102,6 +102,17 @@
               </div>
             </div>
             <div class="absolute top-1 right-1 flex space-x-1">
+              <!-- 插入编辑器按钮 -->
+              <button
+                type="button"
+                @click.stop.prevent="emitInsertToEditor(attachment)"
+                class="bg-green-600/70 hover:bg-green-700/70 text-white rounded p-1 transition-colors"
+                title="插入到编辑器"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
               <button
                 type="button"
                 @click.stop.prevent="downloadAttachment(attachment)"
@@ -275,6 +286,7 @@
 import { ref, defineProps, defineEmits, onMounted, computed, onUnmounted } from 'vue';
 import { useAttachmentsStore } from '@/stores/attachments';
 import { storeToRefs } from 'pinia';
+import toast from '@/utils/toast';
 
 const props = defineProps({
   noteId: {
@@ -295,7 +307,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['upload-success', 'upload-error', 'delete-success']);
+const emit = defineEmits(['upload-success', 'upload-error', 'delete-success', 'insert-to-editor']);
 
 const attachmentsStore = useAttachmentsStore();
 const { attachments, isLoading, uploadProgress } = storeToRefs(attachmentsStore);
@@ -786,6 +798,66 @@ onUnmounted(() => {
     }
   });
 });
+
+// 将图片插入到编辑器
+const emitInsertToEditor = (attachment) => {
+  if (!attachment) return;
+  
+  // 创建附件URL
+  let attachmentUrl = '';
+  
+  // 临时模式
+  if (props.tempMode && attachment.previewUrl) {
+    attachmentUrl = attachment.previewUrl;
+  } 
+  // 普通模式 - 使用预先加载的blob URL 
+  else if (attachmentBlobUrls.value[attachment.id]) {
+    attachmentUrl = attachmentBlobUrls.value[attachment.id];
+  }
+  // 使用API ID构建URL
+  else {
+    attachmentUrl = `/api/attachments/${attachment.id}`;
+    
+    // 尝试即时加载图片并获取blob URL
+    if (isImage(attachment)) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', `${baseUrl}/attachments/${attachment.id}`, true);
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.responseType = 'blob';
+        
+        xhr.onload = function() {
+          if (this.status === 200) {
+            const blob = new Blob([this.response], { type: attachment.filetype });
+            const blobUrl = URL.createObjectURL(blob);
+            attachmentBlobUrls.value[attachment.id] = blobUrl;
+            console.log('已为插入创建blob URL:', blobUrl);
+            
+            // 发送更新的URL到编辑器
+            emit('insert-to-editor', {
+              id: attachment.id,
+              filename: attachment.filename,
+              url: blobUrl
+            });
+          }
+        };
+        
+        xhr.send();
+        // 早期返回，异步处理URL创建
+        return;
+      }
+    }
+  }
+  
+  // 直接发送事件，将附件传递给父组件
+  emit('insert-to-editor', {
+    id: attachment.id,
+    filename: attachment.filename,
+    url: attachmentUrl
+  });
+};
 </script>
 
 <style scoped>

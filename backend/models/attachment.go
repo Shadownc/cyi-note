@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,18 +15,21 @@ import (
 // Attachment 附件模型
 type Attachment struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
-	NoteID    uint           `gorm:"index;not null" json:"note_id"`
+	NoteID    *uint          `gorm:"index;null" json:"note_id"` // 修改为指针类型，允许为NULL
+	UserID    uint           `gorm:"index;not null;default:1" json:"user_id"` // 为现有记录设置默认值
 	Filename  string         `gorm:"size:255;not null" json:"filename"`
 	Filepath  string         `gorm:"size:255;not null" json:"-"` // 文件存储路径，不返回给前端
 	FileURL   string         `gorm:"-" json:"file_url"`          // 文件访问URL，计算属性，不存储在数据库
 	Filetype  string         `gorm:"size:100" json:"filetype"`
 	Filesize  int64          `json:"filesize"`
+	IsTemp    bool           `gorm:"default:false" json:"is_temp"` // 是否是临时附件
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 	
 	// 关联
 	Note Note `gorm:"foreignKey:NoteID" json:"-"`
+	User User `gorm:"foreignKey:UserID" json:"-"`
 }
 
 // AfterFind 查询后自动设置文件URL
@@ -60,56 +64,109 @@ func GetAttachmentByID(id uint) (*Attachment, error) {
 // GetAttachmentsByNoteID 获取笔记的所有附件
 func GetAttachmentsByNoteID(noteID uint) ([]Attachment, error) {
 	var attachments []Attachment
+	// 使用IS NOT NULL条件确保只查询已关联到笔记的附件
 	err := DB.Where("note_id = ?", noteID).Find(&attachments).Error
 	return attachments, err
 }
 
 // SaveFile 保存文件并创建附件记录
-func SaveFile(file *os.File, filename string, noteID uint, fileType string) (*Attachment, error) {
+func SaveFile(file *os.File, filename string, noteID uint, fileType string, userID uint, isTemp bool) (*Attachment, error) {
 	// 创建上传目录
-	uploadDir := "uploads"
+	var uploadDir string
+	if isTemp {
+		// 临时文件保存在临时目录
+		uploadDir = filepath.Join("uploads", "temp", fmt.Sprintf("%d", userID))
+	} else {
+		// 普通附件保存在uploads目录
+		uploadDir = filepath.Join("uploads", fmt.Sprintf("%d", userID))
+	}
+	
+	// 确保目录存在
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("创建目录失败: %v", err)
 	}
 	
 	// 生成文件路径
-	timestamp := time.Now().Unix()
-	newFilename := filepath.Join(uploadDir, string(timestamp)+"_"+filename)
-	
-	// 获取文件信息
-	fileInfo, err := file.Stat()
-	if err != nil {
-		return nil, err
+	timestamp := time.Now().UnixNano()
+	randomSuffix := fmt.Sprintf("%x", timestamp)[:8] // 使用时间戳的前8位十六进制作为随机后缀
+	fileExt := filepath.Ext(filename)
+	if fileExt == "" {
+		// 如果没有扩展名，尝试从Content-Type推断
+		fileExt = getExtensionFromContentType(fileType)
 	}
 	
+	// 安全化文件名，只保留基本部分
+	safeName := fmt.Sprintf("%d_%d_%s%s", 
+		userID, timestamp, randomSuffix, fileExt)
+	newFilepath := filepath.Join(uploadDir, safeName)
+	
 	// 创建目标文件
-	dst, err := os.Create(newFilename)
+	dst, err := os.Create(newFilepath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("创建目标文件失败: %v", err)
 	}
 	defer dst.Close()
 	
 	// 复制文件内容
-	/*
 	if _, err = io.Copy(dst, file); err != nil {
-		return nil, err
+		// 如果复制失败，删除已创建的文件
+		os.Remove(newFilepath)
+		return nil, fmt.Errorf("复制文件内容失败: %v", err)
 	}
-	*/
+	
+	// 获取文件信息，包括大小
+	fileInfo, err := os.Stat(newFilepath)
+	if err != nil {
+		os.Remove(newFilepath)
+		return nil, fmt.Errorf("获取文件信息失败: %v", err)
+	}
 	
 	// 创建附件记录
 	attachment := &Attachment{
-		NoteID:   noteID,
+		UserID:   userID,
 		Filename: filename,
-		Filepath: newFilename,
+		Filepath: newFilepath,
 		Filetype: fileType,
 		Filesize: fileInfo.Size(),
+		IsTemp:   isTemp,
+	}
+	
+	// 只有在非临时附件且提供了noteID的情况下，才设置NoteID
+	if !isTemp && noteID > 0 {
+		attachment.NoteID = &noteID
 	}
 	
 	if err := DB.Create(attachment).Error; err != nil {
-		return nil, err
+		// 如果创建失败，删除已创建的文件
+		os.Remove(newFilepath)
+		return nil, fmt.Errorf("创建附件记录失败: %v", err)
 	}
 	
 	return attachment, nil
+}
+
+// getExtensionFromContentType 根据Content-Type猜测文件扩展名
+func getExtensionFromContentType(contentType string) string {
+	switch contentType {
+	case "image/jpeg", "image/jpg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/gif":
+		return ".gif"
+	case "image/webp":
+		return ".webp"
+	case "application/pdf":
+		return ".pdf"
+	case "text/plain":
+		return ".txt"
+	case "text/markdown":
+		return ".md"
+	case "application/json":
+		return ".json"
+	default:
+		return ""
+	}
 }
 
 // DeleteAttachment 删除附件
@@ -132,7 +189,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 	// 基础查询：获取属于用户的所有附件
 	query := DB.Model(&Attachment{}).
 		Joins("JOIN notes ON notes.id = attachments.note_id").
-		Where("notes.user_id = ?", userID)
+		Where("notes.user_id = ? AND attachments.note_id IS NOT NULL", userID)
 	
 	// 应用文件类型过滤（如果有）
 	if fileType != "" {
@@ -174,6 +231,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 			FROM attachments
 			JOIN notes ON notes.id = attachments.note_id
 			WHERE notes.user_id = ? AND attachments.deleted_at IS NULL
+                AND attachments.note_id IS NOT NULL
 		`
 	} else if dbType == "mysql" || dbType == "postgres" {
 		// MySQL/PostgreSQL 日期函数
@@ -184,6 +242,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 			FROM attachments
 			JOIN notes ON notes.id = attachments.note_id
 			WHERE notes.user_id = ? AND attachments.deleted_at IS NULL
+                AND attachments.note_id IS NOT NULL
 		`
 	} else {
 		// 兜底方案：直接返回时间戳，后续处理
@@ -194,6 +253,7 @@ func GetAttachmentsByDate(userID uint, page, pageSize int, fileType string) ([]A
 			FROM attachments
 			JOIN notes ON notes.id = attachments.note_id
 			WHERE notes.user_id = ? AND attachments.deleted_at IS NULL
+                AND attachments.note_id IS NOT NULL
 		`
 	}
 	
@@ -280,4 +340,9 @@ func formatDisplayDate(t time.Time) string {
 	}
 	
 	return t.Format("2006年01月02日")
+}
+
+// UpdateAttachment 更新附件
+func UpdateAttachment(attachment *Attachment) error {
+	return DB.Save(attachment).Error
 } 

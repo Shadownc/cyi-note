@@ -14,6 +14,11 @@ export function getNotes(params) {
   return get('/notes', params).then(normalizeNotes);
 }
 
+// 获取公开笔记列表
+export function getPublicNotes(params) {
+  return get('/public/notes', params).then(normalizeNotes);
+}
+
 // 创建笔记
 export function createNote(data) {
   return post('/notes', data).then(normalizeNoteDates);

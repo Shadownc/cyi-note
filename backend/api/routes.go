@@ -15,6 +15,12 @@ func SetupRoutes(r *gin.Engine) {
 	// 创建API路由组
 	api := r.Group("/api")
 	
+	// 公开路由（无需认证）
+	public := api.Group("/public")
+	{
+		public.GET("/notes", controllers.GetPublicNotes) // 获取公开笔记
+	}
+	
 	// 认证相关路由
 	auth := api.Group("/auth")
 	{
@@ -55,6 +61,10 @@ func SetupRoutes(r *gin.Engine) {
 		attachments.GET("/:id", controllers.GetAttachment)
 		attachments.DELETE("/:id", controllers.DeleteAttachment)
 		attachments.GET("/library", controllers.GetAttachmentsByDate)
+		
+		// 临时附件相关路由
+		attachments.POST("/temp", controllers.UploadTempAttachment)
+		attachments.POST("/temp/:id/associate", controllers.AssociateTempAttachment)
 	}
 	
 	// AI相关路由

@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api', // 从环境变量获取API基础URL
+  baseURL: '/api', // 使用相对路径，以便代理可以工作
   timeout: 15000, // 请求超时时间
   withCredentials: false // 跨域请求不带凭证
 })

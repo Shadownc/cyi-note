@@ -1,7 +1,15 @@
 <template>
   <div class="bg-card dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg p-5 border border-border dark:border-gray-700 transition duration-300 hover:border-primary-500 dark:hover:border-primary-400 cursor-pointer group dark:shadow-gray-900/30 h-[230px] flex flex-col" @click="navigateToNoteDetail">
     <div class="flex justify-between items-start mb-3">
-      <h3 class="text-lg font-semibold text-text-primary dark:text-gray-50 group-hover:text-primary-600 dark:group-hover:text-primary-300 transition-colors truncate mr-2">{{ note.title }}</h3>
+      <h3 class="text-lg font-semibold text-text-primary dark:text-gray-50 group-hover:text-primary-600 dark:group-hover:text-primary-300 transition-colors truncate mr-2">
+        {{ note.title }}
+        <span v-if="note.is_public" class="inline-flex items-center text-green-600 dark:text-green-400 ml-2 text-xs">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          公开
+        </span>
+      </h3>
       <span class="text-sm text-text-secondary dark:text-gray-400 ml-2 shrink-0">{{ formatDate(note.created_at) }}</span>
     </div>
     <p class="text-text-secondary dark:text-gray-300 text-sm mb-4 line-clamp-2 flex-grow">{{ notePreview }}</p>

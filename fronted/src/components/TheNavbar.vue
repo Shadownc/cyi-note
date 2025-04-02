@@ -16,27 +16,32 @@
         <div class="hidden md:flex items-center space-x-4">
           <router-link to="/" :class="[
             'px-3 py-2 rounded-md transition-colors font-medium text-white',
-            activeRoute === 'home' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            activeRoute === 'home' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
           ]">首页</router-link>
+          
+          <router-link to="/about" :class="[
+            'px-3 py-2 rounded-md transition-colors font-medium text-white',
+            activeRoute === 'about' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
+          ]">关于我们</router-link>
           
           <!-- 已登录用户可见的导航 -->
           <template v-if="isAuthenticated">
             <router-link to="/notes" :class="[
               'px-3 py-2 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'notes' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'notes' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]">我的笔记</router-link>
             <router-link to="/tags" :class="[
               'px-3 py-2 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'tags' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'tags' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]">标签管理</router-link>
             <router-link to="/library" :class="[
               'px-3 py-2 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'library' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'library' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]">资源库</router-link>
             <!-- 管理员可见入口 -->
             <router-link v-if="isAdmin" to="/admin" :class="[
               'px-3 py-2 rounded-md transition-colors font-medium text-white flex items-center',
-              activeRoute === 'admin' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'admin' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -71,7 +76,7 @@
               @click="toggleUserMenu"
               :class="[
                 'flex items-center text-white px-3 py-2 rounded-md focus:outline-none',
-                activeRoute === 'profile' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800'
+                activeRoute === 'profile' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white'
               ]"
             >
               <div class="w-8 h-8 rounded-full bg-primary-700 flex items-center justify-center text-white font-medium mr-2">
@@ -120,7 +125,7 @@
               to="/auth/login" 
               :class="[
                 'px-3 py-2 rounded-md text-white font-medium transition-colors',
-                activeRoute === 'login' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700'
+                activeRoute === 'login' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white'
               ]"
             >
               登录
@@ -140,7 +145,7 @@
         <!-- 移动端菜单按钮和主题设置 -->
         <div class="md:hidden flex items-center">
           <ThemeSettings class="mr-2" />
-          <button @click="toggleMobileMenu" class="text-white focus:outline-none p-2 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700">
+          <button @click="toggleMobileMenu" class="text-white focus:outline-none p-2 rounded-md hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path v-if="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
@@ -149,17 +154,28 @@
         </div>
       </div>
 
-      <!-- 移动端导航菜单 -->
+      <!-- 移动端菜单 -->
       <div v-if="mobileMenuOpen" class="md:hidden pb-4 space-y-2 animate-fadeIn">
         <router-link 
           to="/" 
           :class="[
             'block px-4 py-3 rounded-md transition-colors font-medium text-white',
-            activeRoute === 'home' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+            activeRoute === 'home' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
           ]"
           @click="mobileMenuOpen = false"
         >
           首页
+        </router-link>
+
+        <router-link 
+          to="/about" 
+          :class="[
+            'block px-4 py-3 rounded-md transition-colors font-medium text-white',
+            activeRoute === 'about' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
+          ]"
+          @click="mobileMenuOpen = false"
+        >
+          关于我们
         </router-link>
         
         <!-- 已登录用户可见的移动端导航 -->
@@ -168,7 +184,7 @@
             to="/notes" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'notes' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'notes' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -178,7 +194,7 @@
             to="/tags" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'tags' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'tags' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -188,7 +204,7 @@
             to="/library" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white', 
-              activeRoute === 'library' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'library' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -200,7 +216,7 @@
             to="/admin" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white flex items-center', 
-              activeRoute === 'admin' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'admin' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -213,7 +229,7 @@
             to="/profile" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'profile' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'profile' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -221,7 +237,7 @@
           </router-link>
           <button 
             @click="logout" 
-            class="block w-full text-left px-4 py-3 rounded-md hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors font-medium text-white"
+            class="block w-full text-left px-4 py-3 rounded-md hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700 transition-colors font-medium text-white"
           >
             退出登录
           </button>
@@ -233,7 +249,7 @@
             to="/auth/login" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'login' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'login' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -243,7 +259,7 @@
             to="/auth/register" 
             :class="[
               'block px-4 py-3 rounded-md transition-colors font-medium text-white',
-              activeRoute === 'register' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-700 dark:hover:bg-primary-700'
+              activeRoute === 'register' ? 'bg-primary-700 bg-opacity-70 dark:bg-primary-700 dark:bg-opacity-40 font-semibold' : 'hover:bg-primary-800 hover:bg-opacity-50 hover:text-white dark:hover:bg-gray-700'
             ]"
             @click="mobileMenuOpen = false"
           >
@@ -305,17 +321,17 @@ const activeRoute = computed(() => {
   if (path.startsWith('/admin')) return 'admin';
   if (path.includes('/login')) return 'login';
   if (path.includes('/register')) return 'register';
+  if (path.startsWith('/about')) return 'about';
   return '';
 });
 
 // 切换移动菜单
 const toggleMobileMenu = () => {
   mobileMenuOpen.value = !mobileMenuOpen.value;
-  
-  // 关闭用户菜单
-  if (mobileMenuOpen.value) {
-    userMenuOpen.value = false;
-  }
+};
+
+const closeMobileMenu = () => {
+  mobileMenuOpen.value = false;
 };
 
 // 切换用户菜单

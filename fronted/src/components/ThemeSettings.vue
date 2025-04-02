@@ -3,7 +3,7 @@
     <!-- 主题设置按钮 -->
     <button 
       @click="toggleMenu"
-      class="rounded-full p-2 text-white dark:text-white transition-colors focus:outline-none hover:bg-primary-800"
+      class="rounded-full p-2 text-white dark:text-white transition-colors focus:outline-none hover:bg-primary-800 hover:bg-opacity-50 hover:text-white"
       :title="t('主题设置')"
     >
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -5,19 +5,24 @@ import api from '@/api'
 export const useNotesStore = defineStore('notes', () => {
   // 状态
   const notes = ref([])
+  const publicNotes = ref([]) // 公开笔记
   const currentNote = ref(null)
   const isLoading = ref(false)
   const totalNotes = ref(0)
+  const totalPublicNotes = ref(0) // 公开笔记总数
   const currentPage = ref(1)
+  const publicNotesPage = ref(1) // 公开笔记分页
   const pageSize = ref(10)
   const activeTag = ref(null)
   const searchKeyword = ref('')
 
   // 计算属性
   const hasNotes = computed(() => notes.value.length > 0)
+  const hasPublicNotes = computed(() => publicNotes.value.length > 0)
   const totalPages = computed(() => Math.ceil(totalNotes.value / pageSize.value))
+  const totalPublicPages = computed(() => Math.ceil(totalPublicNotes.value / pageSize.value))
 
-  // 获取笔记列表
+  // 获取用户自己的笔记列表
   async function fetchNotes(page = 1, size = 10, tagId = null, sortOption = null) {
     isLoading.value = true
     try {
@@ -54,6 +59,27 @@ export const useNotesStore = defineStore('notes', () => {
       totalNotes.value = response.total
     } catch (error) {
       console.error('获取笔记失败:', error)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  // 获取公开笔记列表
+  async function fetchPublicNotes(page = 1, size = 10) {
+    isLoading.value = true
+    try {
+      publicNotesPage.value = page
+      
+      const params = {
+        page,
+        pageSize: size
+      }
+      
+      const response = await api.notes.getPublicNotes(params)
+      publicNotes.value = response.notes
+      totalPublicNotes.value = response.total
+    } catch (error) {
+      console.error('获取公开笔记失败:', error)
     } finally {
       isLoading.value = false
     }
@@ -186,16 +212,22 @@ export const useNotesStore = defineStore('notes', () => {
 
   return {
     notes,
+    publicNotes,
     currentNote,
     isLoading,
     totalNotes,
+    totalPublicNotes,
     currentPage,
+    publicNotesPage,
     pageSize,
     activeTag,
     searchKeyword,
     hasNotes,
+    hasPublicNotes,
     totalPages,
+    totalPublicPages,
     fetchNotes,
+    fetchPublicNotes,
     fetchNote,
     createNote,
     updateNote,

@@ -20,6 +20,24 @@
         </router-link>
       </div>
 
+      <!-- 笔记标题 -->
+      <div class="mb-6">
+        <div class="flex items-start justify-between">
+          <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white break-words">
+            {{ note.title }}
+            <span v-if="note.is_public" class="inline-flex items-center text-green-600 dark:text-green-400 ml-2 text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              公开笔记
+            </span>
+          </h1>
+          <div class="flex space-x-2">
+            <!-- 右侧按钮区域 -->
+          </div>
+        </div>
+      </div>
+
       <!-- 笔记详情 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-5 sm:p-6 md:p-8">
         <NoteDetail 

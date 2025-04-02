@@ -20,10 +20,13 @@ import AdminNotesView from '../views/admin/NotesView.vue'
 import AdminTagsView from '../views/admin/TagsView.vue'
 import AdminSettingsView from '../views/admin/SettingsView.vue'
 
+// 新增关于我们页面
+import AboutView from '../views/AboutView.vue'
+
 import { useUserStore } from '../stores/user'
 
 // 白名单路由 - 这些路由不需要登录就能访问
-const whiteList = ['home', 'login', 'register']
+const whiteList = ['home', 'login', 'register', 'about']
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +39,12 @@ const router = createRouter({
           path: '',
           name: 'home',
           component: HomeView,
+        },
+        {
+          path: 'about',
+          name: 'about',
+          component: AboutView,
+          meta: { title: '关于我们' }
         },
         {
           path: 'notes',
@@ -140,7 +149,19 @@ const router = createRouter({
     {
       path: '/register',
       redirect: '/auth/register'
-    }
+    },
+    // 公开内容路由（无需登录）
+    {
+      path: '/public',
+      component: () => import('@/layouts/DefaultLayout.vue'),
+      children: [
+        {
+          path: 'notes',
+          name: 'public-notes',
+          redirect: '/' // 重定向到首页
+        }
+      ]
+    },
   ],
 })
 

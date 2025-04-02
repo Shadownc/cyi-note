@@ -11,9 +11,10 @@ import (
 
 // 笔记请求
 type NoteRequest struct {
-	Title   string   `json:"title" binding:"required"`
-	Content string   `json:"content"`
-	Tags    []string `json:"tags"` // 标签名称列表
+	Title    string   `json:"title" binding:"required"`
+	Content  string   `json:"content"`
+	Tags     []string `json:"tags"` // 标签名称列表
+	IsPublic bool     `json:"is_public"` // 是否公开笔记
 }
 
 // CreateNote 创建笔记
@@ -31,9 +32,10 @@ func CreateNote(c *gin.Context) {
 	
 	// 创建笔记
 	note := models.Note{
-		UserID:  userID.(uint),
-		Title:   req.Title,
-		Content: req.Content,
+		UserID:   userID.(uint),
+		Title:    req.Title,
+		Content:  req.Content,
+		IsPublic: req.IsPublic, // 设置是否公开
 	}
 	
 	// 保存笔记
@@ -169,6 +171,7 @@ func UpdateNote(c *gin.Context) {
 	// 更新笔记
 	note.Title = req.Title
 	note.Content = req.Content
+	note.IsPublic = req.IsPublic
 	
 	if err := models.UpdateNote(note); err != nil {
 		utils.ServerErrorResponse(c, "更新笔记失败")
@@ -276,4 +279,25 @@ func SearchNotes(c *gin.Context) {
 		"page":  page,
 		"size":  pageSize,
 	}, "搜索笔记成功")
+}
+
+// GetPublicNotes 获取所有公开的笔记
+func GetPublicNotes(c *gin.Context) {
+	// 分页参数
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	
+	// 获取公开笔记
+	notes, total, err := models.GetPublicNotes(page, pageSize)
+	if err != nil {
+		utils.ServerErrorResponse(c, "获取公开笔记失败")
+		return
+	}
+	
+	utils.OkResponse(c, gin.H{
+		"notes": notes,
+		"total": total,
+		"page":  page,
+		"size":  pageSize,
+	}, "获取公开笔记成功")
 } 

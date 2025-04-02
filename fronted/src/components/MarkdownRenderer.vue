@@ -3,9 +3,10 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted, nextTick, defineProps } from 'vue';
 import { marked } from 'marked';
 import Prism from 'prismjs';
+import { loadAuthenticatedImage } from '@/utils/imageHelper';
 // 导入基本主题样式，您可以更换为其他主题
 import 'prismjs/themes/prism.css';
 // 导入常用语言
@@ -130,6 +131,85 @@ const setupMarked = () => {
     `;
   };
   
+  // 自定义图片渲染
+  renderer.image = function(href, title, text) {
+    let imgClass = 'markdown-image';
+    let loadingClass = '';
+    
+    console.log('图片渲染参数:', { href: href, title: title, text: text, hrefType: typeof href });
+    
+    // 特殊处理object类型的href
+    if (href && typeof href === 'object') {
+      if (href.href) {
+        console.log('从对象中提取href属性:', href.href);
+        href = href.href;
+      } else if (href.src) {
+        console.log('从对象中提取src属性:', href.src);
+        href = href.src;
+      } else if (href.url) {
+        console.log('从对象中提取url属性:', href.url);
+        href = href.url;
+      } else {
+        // 尝试转换对象为字符串
+        try {
+          const objString = String(href);
+          console.log('对象转换为字符串:', objString);
+          // 如果不是[object Object]，则使用转换后的字符串
+          if (objString !== '[object Object]') {
+            href = objString;
+          } else {
+            // 如果是[object Object]，尝试序列化
+            const jsonString = JSON.stringify(href);
+            console.log('对象序列化为JSON:', jsonString);
+            href = '';
+          }
+        } catch (e) {
+          console.error('无法将href对象转换为字符串:', e);
+          href = '';
+        }
+      }
+    }
+    
+    // 确保href是字符串类型
+    if (href === null || href === undefined) {
+      href = '';
+    } else if (typeof href !== 'string') {
+      try {
+        href = String(href);
+        console.log('强制将非字符串href转换为字符串:', href);
+      } catch (e) {
+        console.error('无法将href转换为字符串:', e);
+        href = '';
+      }
+    }
+    
+    // 检测临时占位符
+    if (href && href.includes('img_placeholder_')) {
+      loadingClass = 'image-loading';
+      imgClass += ' placeholder-image';
+    }
+    
+    // 特殊处理blob URL
+    if (href && href.startsWith('blob:')) {
+      console.log('处理blob URL:', href);
+    }
+    
+    // 添加错误处理和加载状态
+    return `
+      <div class="image-container ${loadingClass}">
+        <img 
+          src="${href}" 
+          alt="${text || ''}" 
+          title="${title || text || ''}" 
+          class="${imgClass}" 
+          onerror="this.onerror=null; this.classList.add('image-error'); this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWFsZXJ0LXRyaWFuZ2xlIj48cGF0aCBkPSJtMjEuNzMgMTgtOC0xNGEyIDIgMCAwIDAtMy40NiAwbC04IDE0QTIgMiAwIDAgMCA0IDE5LjVoMTZhMiAyIDAgMCAwIDEuNzMtMS41WiIvPjxsaW5lIHgxPSIxMiIgeTE9IjgiIHgyPSIxMiIgeTI9IjEyIi8+PGxpbmUgeDE9IjEyIiB5MT0iMTYiIHgyPSIxMi4wMSIgeTI9IjE2Ii8+PC9zdmc+'; this.parentNode.classList.add('image-error-container'); console.error('图片加载失败:', this.src);"
+          onload="this.parentNode.classList.remove('image-loading'); console.log('图片加载成功:', this.src);"
+        />
+        ${loadingClass ? '<div class="image-loading-indicator"><div class="spinner"></div></div>' : ''}
+      </div>
+    `;
+  };
+  
   marked.setOptions({
     renderer: renderer,
     highlight: function(code, lang) {
@@ -157,8 +237,134 @@ const renderMarkdown = (markdown) => {
     }
   }
   
-  return marked(markdown);
+  // 处理图片URL，确保路径正确 
+  const processedMarkdown = markdown.replace(
+    /!\[(.*?)\]\((.*?)\)/g,
+    (match, alt, url) => {
+      // 确保url是字符串
+      if (url === null || url === undefined) {
+        url = '';
+      } else if (typeof url !== 'string') {
+        try {
+          url = String(url);
+          console.log('URL处理: 非字符串URL转换为字符串:', url);
+        } catch (e) {
+          console.error('URL处理: 无法将URL转换为字符串:', e);
+          url = '';
+        }
+      }
+      
+      // 记录处理前的URL
+      console.log('URL处理: 原始URL:', url);
+      
+      // 检查是否是blob URL，如果是则尝试从文件名提取ID
+      if (url && url.startsWith('blob:')) {
+        console.log('URL处理: 检测到blob URL:', url);
+        // 尝试在内容中查找这个 blob URL 对应的附件 ID
+        // 这可能需要根据您的数据结构调整
+        const blobFileName = alt || '';
+        if (blobFileName) {
+          // 记录这个blob URL以便后续处理
+          console.log('URL处理: blob URL对应的文件名:', blobFileName);
+          // 返回原始URL，但在renderMarkdown后会尝试特殊处理这个URL
+          return `![${alt}](${url})`;
+        }
+      }
+      
+      // 特殊处理img_placeholder标识符 - 保持不变
+      if (url && url.includes('img_placeholder_')) {
+        console.log('URL处理: 保留占位符URL:', url);
+        return `![${alt}](${url})`;
+      }
+      
+      // 如果URL是附件API格式，确保正确处理
+      if (url && url.includes('/api/attachments/')) {
+        // 对于已经是完整API格式的URL，确保添加认证信息
+        if (!url.startsWith('blob:')) {
+          // 尝试加载已认证的图片
+          loadAuthenticatedImageAsync(url).then(blobUrl => {
+            if (blobUrl) {
+              console.log(`URL处理: 已加载认证图片并创建blob URL: ${url} -> ${blobUrl}`);
+              
+              // 找到渲染后的图片并替换src
+              setTimeout(() => {
+                const renderedImages = document.querySelectorAll(`img[src="${url}"]`);
+                renderedImages.forEach(img => {
+                  img.src = blobUrl;
+                  console.log(`已替换渲染图片的src: ${url} -> ${blobUrl}`);
+                });
+              }, 100);
+            }
+          }).catch(err => {
+            console.error('URL处理: 加载认证图片失败:', err);
+          });
+        }
+        return `![${alt}](${url})`;
+      }
+      
+      // 如果URL是相对路径且不以/开头，添加/api前缀
+      if (url && !url.startsWith('http') && !url.startsWith('/') && !url.startsWith('blob:')) {
+        const newUrl = `/api/${url}`;
+        console.log(`URL处理: 相对路径添加/api前缀: ${url} -> ${newUrl}`);
+        return `![${alt}](${newUrl})`;
+      }
+      
+      // 其他情况保持URL不变
+      return `![${alt}](${url})`;
+    }
+  );
+  
+  return marked(processedMarkdown);
 };
+
+// 加载认证图片的异步函数
+async function loadAuthenticatedImageAsync(url) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('未提供认证令牌，无法加载图片');
+    return null;
+  }
+  
+  try {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+    let fullUrl = url;
+    
+    // 处理相对URL
+    if (url.startsWith('/api/')) {
+      fullUrl = url.replace('/api/', `${baseUrl}/`);
+    }
+    
+    // 创建XHR请求
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', fullUrl, true);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.responseType = 'blob';
+      
+      xhr.onload = function() {
+        if (this.status === 200) {
+          const blob = new Blob([this.response]);
+          const blobUrl = URL.createObjectURL(blob);
+          console.log('已创建认证图片的blob URL:', blobUrl);
+          resolve(blobUrl);
+        } else {
+          console.error('获取图片失败:', this.status);
+          reject(new Error(`HTTP错误 ${this.status}`));
+        }
+      };
+      
+      xhr.onerror = function() {
+        console.error('图片加载请求失败');
+        reject(new Error('网络请求失败'));
+      };
+      
+      xhr.send();
+    });
+  } catch (error) {
+    console.error('加载认证图片异步处理失败:', error);
+    return null;
+  }
+}
 
 // 为代码块添加复制功能
 const addCopyFunctionality = () => {
@@ -245,21 +451,478 @@ const applyPrismHighlight = () => {
   }
 };
 
+// 处理图片URL
+const processImageUrl = (url) => {
+  if (!url) return '';
+  
+  // 记录原始URL
+  console.log('处理图片URL:', url);
+  
+  // 如果是Blob URL或data URL，保持不变
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    console.log('保留原始Blob/Data URL:', url);
+    return url;
+  }
+  
+  // 以#或?开头的锚点或查询参数，不处理
+  if (url.startsWith('#') || url.startsWith('?')) {
+    return url;
+  }
+  
+  // 确保API附件路径正确，但不添加token，因为我们会在图片加载时处理认证
+  if (url.startsWith('/api/attachments/')) {
+    console.log('保留完整API路径:', url);
+    return url;
+  }
+  
+  // 如果是相对路径但不是以/开头，添加/api前缀
+  if (!url.startsWith('http') && !url.startsWith('/')) {
+    const newUrl = `/api/${url}`;
+    console.log(`添加API前缀: ${url} -> ${newUrl}`);
+    return newUrl;
+  }
+  
+  // 如果是以/开头但不是以/api开头，添加/api前缀
+  if (url.startsWith('/') && !url.startsWith('/api/')) {
+    const newUrl = `/api${url}`;
+    console.log(`添加API前缀: ${url} -> ${newUrl}`);
+    return newUrl;
+  }
+  
+  // 其他情况，保留原URL
+  return url;
+};
+
+// 处理需要认证的图片
+const handleAuthenticatedImage = (img) => {
+  const src = img.getAttribute('src');
+  
+  // 只处理需要认证的API路径
+  if (src && src.startsWith('/api/attachments/')) {
+    console.log('处理需要认证的图片URL:', src);
+    
+    // 添加加载中的样式
+    const parent = img.parentNode;
+    if (parent) {
+      parent.classList.add('image-loading');
+    }
+    
+    // 使用工具函数加载认证图片
+    loadAuthenticatedImage(src)
+      .then(blobUrl => {
+        if (blobUrl !== src) {
+          // 替换为blob URL
+          img.src = blobUrl;
+          console.log('已替换为认证图片的blob URL:', blobUrl);
+          
+          // 移除加载状态
+          if (parent) {
+            parent.classList.remove('image-loading');
+            parent.classList.add('image-loaded');
+          }
+        }
+      })
+      .catch(error => {
+        console.error('加载认证图片失败:', error);
+        img.onerror();
+      });
+  }
+};
+
+// 处理复制按钮点击事件
+const handleCopyClick = (e) => {
+  const btn = e.currentTarget;
+  const code = decodeURIComponent(btn.getAttribute('data-code'));
+  copyToClipboard(code);
+  e.stopPropagation();
+};
+
+// 尝试从blob URL中提取特征信息
+const extractInfoFromBlobUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  
+  // 一般blob URL格式: blob:http://domain/uuid
+  try {
+    const parts = url.split('/');
+    const uuid = parts[parts.length - 1];
+    return uuid;
+  } catch (error) {
+    console.error('无法从blob URL提取信息:', error);
+    return null;
+  }
+};
+
+// 保存和加载blob URL映射
+const saveBlobMapping = (blobId, apiUrl) => {
+  if (!blobId || !apiUrl) return;
+  
+  try {
+    // 从localStorage获取现有映射
+    const blobMap = JSON.parse(localStorage.getItem('blobUrlMap') || '{}');
+    
+    // 更新映射
+    blobMap[blobId] = apiUrl;
+    
+    // 保存回localStorage
+    localStorage.setItem('blobUrlMap', JSON.stringify(blobMap));
+    console.log(`已保存blob映射: ${blobId} -> ${apiUrl}`);
+  } catch (error) {
+    console.error('保存blob URL映射失败:', error);
+  }
+};
+
+// 获取blob URL的映射
+const getBlobMapping = (blobId) => {
+  if (!blobId) return null;
+  
+  try {
+    // 从localStorage获取映射
+    const blobMap = JSON.parse(localStorage.getItem('blobUrlMap') || '{}');
+    
+    // 返回对应的API URL
+    return blobMap[blobId] || null;
+  } catch (error) {
+    console.error('获取blob URL映射失败:', error);
+    return null;
+  }
+};
+
+// 清理过期的blob映射
+const cleanupBlobMappings = () => {
+  try {
+    const blobMap = JSON.parse(localStorage.getItem('blobUrlMap') || '{}');
+    const now = Date.now();
+    let count = 0;
+    
+    // 检查localStorage中是否已有过期时间记录
+    const lastCleanup = parseInt(localStorage.getItem('lastBlobMapCleanup') || '0');
+    
+    // 如果距离上次清理不足1天，则跳过
+    if (now - lastCleanup < 24 * 60 * 60 * 1000) {
+      return;
+    }
+    
+    // 遍历所有映射并检查其有效性
+    Object.keys(blobMap).forEach(blobId => {
+      // 这里我们可以添加额外的有效性检查
+      // 或者设置一个过期时间（例如7天）
+      // 不过由于映射是轻量级的，我们可以选择保留它们
+    });
+    
+    // 记录清理时间
+    localStorage.setItem('lastBlobMapCleanup', now.toString());
+  } catch (error) {
+    console.error('清理blob映射失败:', error);
+  }
+};
+
 // 更新渲染内容
 const updateContent = () => {
   try {
-    console.log('准备渲染内容, 类型:', typeof props.content, '值:', props.content);
-    renderedContent.value = renderMarkdown(props.content);
+    console.log('准备渲染内容, 类型:', typeof props.content, '值:', props.content?.substring?.(0, 100));
+    let contentToRender = props.content;
+    if (contentToRender === null || contentToRender === undefined) {
+      contentToRender = '';
+    } else if (typeof contentToRender !== 'string') {
+      contentToRender = String(contentToRender);
+    }
     
-    // 更新渲染内容后添加复制功能和语法高亮
+    // 检查内容中的图片URL
+    const imageMatches = contentToRender.match(/!\[.*?\]\((.*?)\)/g);
+    if (imageMatches && imageMatches.length > 0) {
+      console.log(`内容中包含 ${imageMatches.length} 个图片链接:`);
+      imageMatches.forEach((match, index) => {
+        const urlMatch = match.match(/!\[.*?\]\((.*?)\)/);
+        const url = urlMatch?.[1] || '';
+        console.log(`图片 #${index + 1}: ${url}`);
+        
+        // 尝试预处理图片URL
+        if (url) {
+          const processedUrl = processImageUrl(url);
+          if (url !== processedUrl) {
+            // 替换内容中的图片URL
+            contentToRender = contentToRender.replace(
+              `![](${url})`, 
+              `![](${processedUrl})`
+            ).replace(
+              `![${url}](${url})`, 
+              `![${url}](${processedUrl})`
+            );
+            console.log(`URL已预处理: ${url} -> ${processedUrl}`);
+          }
+        }
+      });
+    } else {
+      console.log('内容中未找到图片链接');
+    }
+    
+    // 检查URL类型
+    if (contentToRender.includes('blob:')) {
+      console.log('内容包含blob URL');
+    }
+    if (contentToRender.includes('/api/attachments/')) {
+      console.log('内容包含API附件URL');
+    }
+    
+    renderedContent.value = renderMarkdown(contentToRender);
+    
+    // 在下一个tick处理页面上的图片
     nextTick(() => {
-      addCopyFunctionality();
-      applyPrismHighlight(); // 应用Prism高亮
+      try {
+        applyPrismHighlight(); // 应用Prism高亮
+        
+        // 处理页面上的所有图片
+        handleRenderedImages();
+        
+        // 添加代码块复制功能
+        const copyButtons = contentRef.value.querySelectorAll('.code-copy-btn');
+        copyButtons.forEach(btn => {
+          btn.addEventListener('click', handleCopyClick);
+        });
+      } catch (error) {
+        console.error('处理渲染后内容时出错:', error);
+      }
     });
   } catch (error) {
-    console.error('渲染Markdown内容时出错:', error);
-    // 在发生错误时显示一个友好的错误消息
-    renderedContent.value = `<div class="markdown-error">无法渲染内容: ${error.message}</div>`;
+    console.error('渲染内容时出错:', error);
+    renderedContent.value = `<div class="text-red-500">渲染内容失败: ${error.message}</div>`;
+  }
+};
+
+// 在页面渲染后处理所有图片
+const handleRenderedImages = () => {
+  // 查找所有图片元素
+  const images = contentRef.value.querySelectorAll('img');
+  console.log(`处理已渲染的图片，共 ${images.length} 个`);
+  
+  // 为每个图片添加错误处理
+  images.forEach((img, index) => {
+    const src = img.getAttribute('src');
+    console.log(`检查图片 #${index+1}，src:`, src);
+    
+    // 添加加载状态的CSS类
+    img.classList.add('loading-image');
+    
+    // 为图片添加加载成功的监听器
+    img.onload = function() {
+      this.classList.remove('loading-image');
+      this.classList.add('loaded-image');
+      console.log(`图片 #${index+1} 加载成功:`, src);
+      
+      // 如果是blob URL，记录下来以便调试
+      if (src.startsWith('blob:')) {
+        this.setAttribute('data-loaded-blob', src);
+        console.log(`Blob URL 图片加载成功:`, src);
+      }
+    };
+    
+    // 如果是blob URL，添加高级错误处理
+    if (src && src.startsWith('blob:')) {
+      console.log(`为blob URL图片 #${index+1} 添加错误处理`);
+      
+      // 保存原始blob URL以便调试
+      img.setAttribute('data-original-blob', src);
+      
+      // 提取blob URL的特征信息
+      const blobId = extractInfoFromBlobUrl(src);
+      if (blobId) {
+        img.setAttribute('data-blob-id', blobId);
+      }
+      
+      // 添加错误处理函数
+      img.onerror = async function() {
+        console.error(`Blob URL图片加载失败: ${src}`);
+        this.classList.remove('loading-image');
+        this.classList.add('error-image');
+        
+        // 设置一个基本的错误指示器图片
+        this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWFsZXJ0LXRyaWFuZ2xlIj48cGF0aCBkPSJtMjEuNzMgMTgtOC0xNGEyIDIgMCAwIDAtMy40NiAwbC04IDE0QTIgMiAwIDAgMCA0IDE5LjVoMTZhMiAyIDAgMCAwIDEuNzMtMS41WiIvPjxsaW5lIHgxPSIxMiIgeTE9IjgiIHgyPSIxMiIgeTI9IjEyIi8+PGxpbmUgeDE9IjEyIiB5MT0iMTYiIHgyPSIxMi4wMSIgeTI9IjE2Ii8+PC9zdmc+';
+        
+        // 尝试恢复策略 1: 通过alt属性查找附件ID
+        const alt = this.getAttribute('alt');
+        let attachmentId = null;
+        let apiUrl = null;
+        
+        // 如果alt包含数字，可能是附件ID
+        if (alt) {
+          const numberMatch = alt.match(/(\d+)/);
+          if (numberMatch && numberMatch[1]) {
+            attachmentId = numberMatch[1];
+            apiUrl = `/api/attachments/${attachmentId}`;
+            console.log(`从alt属性中发现可能的附件ID: ${attachmentId}`);
+          } else {
+            // 尝试根据alt作为文件名查找附件
+            try {
+              attachmentId = await fetchAttachmentsByFilename(alt);
+              if (attachmentId) {
+                apiUrl = `/api/attachments/${attachmentId}`;
+                console.log(`通过文件名 "${alt}" 找到附件ID: ${attachmentId}`);
+              }
+            } catch (error) {
+              console.error('通过文件名查找附件失败:', error);
+            }
+          }
+        }
+        
+        // 尝试恢复策略 2: 从blob URL特征中查找附件ID
+        if (!apiUrl && blobId) {
+          // 尝试从blob URL特征中查找附件ID
+          const cachedUrl = getBlobMapping(blobId);
+          if (cachedUrl) {
+            apiUrl = cachedUrl;
+            console.log(`从缓存的blob映射中找到匹配的API URL: ${apiUrl}`);
+          }
+        }
+        
+        // 如果找到了API URL，尝试重新加载
+        if (apiUrl) {
+          console.log(`尝试从API URL重新加载图片: ${apiUrl}`);
+          
+          // 显示加载指示器
+          this.classList.remove('error-image');
+          this.classList.add('loading-image');
+          
+          // 尝试使用认证方式加载
+          loadAuthenticatedImage(apiUrl)
+            .then(blobUrl => {
+              if (blobUrl) {
+                console.log(`成功加载替代图片: ${blobUrl}`);
+                this.src = blobUrl;
+                this.classList.remove('loading-image');
+                this.classList.remove('error-image');
+                this.classList.add('loaded-image');
+                
+                // 记录成功的blob URL映射，以便下次使用
+                if (blobId && apiUrl) {
+                  saveBlobMapping(blobId, apiUrl);
+                }
+              }
+            })
+            .catch(error => {
+              console.error('重新加载图片失败:', error);
+              this.classList.remove('loading-image');
+              this.classList.add('error-image');
+              showImageError(this);
+            });
+        } else {
+          // 如果找不到附件ID，显示错误指示器
+          showImageError(this);
+        }
+      };
+      
+      // 检查图片是否已经加载失败
+      if (img.complete && (img.naturalWidth === 0 || img.naturalHeight === 0)) {
+        console.log(`图片 #${index+1} 已失败，触发错误处理`);
+        img.onerror();
+      }
+    } 
+    // 如果是api附件URL，确保正确加载
+    else if (src && src.includes('/api/attachments/')) {
+      console.log(`为API附件图片 #${index+1} 添加认证加载处理`);
+      
+      // 提取附件ID
+      const idMatch = src.match(/\/api\/attachments\/(\d+)/);
+      if (idMatch && idMatch[1]) {
+        const attachmentId = idMatch[1];
+        console.log(`从URL提取的附件ID: ${attachmentId}`);
+        
+        // 加载认证图片
+        loadAuthenticatedImage(src)
+          .then(blobUrl => {
+            if (blobUrl) {
+              console.log(`成功加载认证图片: ${blobUrl}`);
+              img.src = blobUrl;
+              img.classList.remove('loading-image');
+              img.classList.add('loaded-image');
+              
+              // 存储blob URL和原始URL的映射关系
+              const blobId = extractInfoFromBlobUrl(blobUrl);
+              if (blobId && src) {
+                saveBlobMapping(blobId, src);
+              }
+            }
+          })
+          .catch(error => {
+            console.error('加载认证图片失败:', error);
+            img.classList.remove('loading-image');
+            img.classList.add('error-image');
+            showImageError(img);
+          });
+      }
+    }
+  });
+};
+
+// 显示图片错误指示器
+const showImageError = (img) => {
+  // 创建容器
+  const parent = img.parentNode;
+  if (!parent) return;
+  
+  parent.classList.add('image-error-container');
+  
+  // 检查是否已存在错误指示器
+  if (parent.querySelector('.image-error-indicator')) return;
+  
+  // 添加错误标记
+  const errorIndicator = document.createElement('div');
+  errorIndicator.className = 'image-error-indicator';
+  errorIndicator.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+    <span class="text-sm text-red-500">图片加载失败</span>
+    <span class="text-xs text-gray-500 mt-1">刷新后的blob链接无效</span>
+  `;
+  parent.appendChild(errorIndicator);
+};
+
+// 通过文件名查找附件ID
+const fetchAttachmentsByFilename = async (filename) => {
+  try {
+    // 尝试从全局状态或者API获取附件列表
+    // 这里的实现需要根据您的应用逻辑调整
+    
+    // 方法1: 尝试从window上的附件store获取
+    if (window.$attachmentsStore) {
+      const attachments = window.$attachmentsStore.attachments;
+      if (attachments && attachments.length) {
+        const attachment = attachments.find(a => a.filename === filename);
+        if (attachment) {
+          return attachment.id;
+        }
+      }
+    }
+    
+    // 方法2: 尝试使用API查询
+    // 这里需要根据您的API调整
+    const token = localStorage.getItem('token');
+    if (token) {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+      const response = await fetch(`${baseUrl}/attachments/search?filename=${encodeURIComponent(filename)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.data && data.data.length > 0) {
+          return data.data[0].id;
+        }
+      }
+    }
+    
+    // 如果找不到，尝试从文件名中提取数字作为ID
+    const matches = filename.match(/(\d+)/);
+    if (matches && matches[1]) {
+      return matches[1];
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('查找附件失败:', error);
+    return null;
   }
 };
 
@@ -270,6 +933,16 @@ watch(() => props.content, (newVal) => {
 
 // 组件加载时渲染初始内容
 onMounted(() => {
+  console.log('MarkdownRenderer组件挂载，marked版本:', marked.version || '未知');
+  console.log('初始内容，类型:', typeof props.content, '长度:', props.content?.length || 0);
+  
+  // 检查marked配置
+  const markedDefaults = marked.getDefaults ? marked.getDefaults() : 'getDefaults方法不可用';
+  console.log('Marked默认配置:', markedDefaults);
+  
+  // 尝试清理过期的blob映射
+  cleanupBlobMappings();
+  
   updateContent();
 });
 </script>
@@ -362,6 +1035,7 @@ onMounted(() => {
   display: block;
   margin: 1em auto;
   border-radius: 0.375rem;
+  transition: all 0.3s ease;
 }
 
 /* 引用样式 */
@@ -752,5 +1426,279 @@ onMounted(() => {
   background-color: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
   color: #f87171;
+}
+
+/* 图片容器样式 */
+.image-container {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.5rem 0;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease-in-out;
+}
+
+.image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* 图片样式 */
+.markdown-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  transition: filter 0.3s ease-in-out;
+}
+
+/* 加载状态 */
+.image-loading {
+  position: relative;
+  min-height: 100px;
+  background-color: rgba(229, 231, 235, 0.5);
+}
+
+.dark .image-loading {
+  background-color: rgba(55, 65, 81, 0.3);
+}
+
+.image-loading .markdown-image {
+  opacity: 0.5;
+  filter: blur(3px);
+}
+
+.image-loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-radius: 50%;
+  border-top-color: rgba(99, 102, 241, 0.8);
+  animation: spin 1s linear infinite;
+}
+
+/* 错误状态 */
+.image-error-container {
+  position: relative;
+  min-height: 100px;
+  background-color: rgba(254, 226, 226, 0.5);
+  border: 1px dashed rgba(220, 38, 38, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dark .image-error-container {
+  background-color: rgba(127, 29, 29, 0.2);
+}
+
+.image-error {
+  opacity: 0.1;
+  filter: grayscale(100%);
+}
+
+.image-error-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  background-color: white;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  text-align: center;
+  gap: 0.5rem;
+}
+
+.dark .image-error-indicator {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
+/* 代码块样式 */
+.code-block-wrapper {
+  position: relative;
+  margin: 1rem 0;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: rgba(243, 244, 246, 0.8);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.75rem;
+}
+
+.dark .code-header {
+  background-color: rgba(31, 41, 55, 0.8);
+  border-bottom: 1px solid rgba(55, 65, 81, 0.8);
+}
+
+.code-language {
+  font-weight: 500;
+  color: #6366F1;
+  text-transform: uppercase;
+}
+
+.dark .code-language {
+  color: #A5B4FC;
+}
+
+.code-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(255, 255, 255, 0.5);
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: #4B5563;
+  transition: all 0.2s ease-in-out;
+}
+
+.dark .code-copy-btn {
+  background-color: rgba(55, 65, 81, 0.5);
+  color: #E5E7EB;
+}
+
+.code-copy-btn:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #111827;
+}
+
+.dark .code-copy-btn:hover {
+  background-color: rgba(75, 85, 99, 0.8);
+  color: #F9FAFB;
+}
+
+.code-block {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  background-color: rgba(249, 250, 251, 0.8);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.dark .code-block {
+  background-color: rgba(17, 24, 39, 0.8);
+}
+
+/* 其他样式增强 */
+.markdown-renderer h1,
+.markdown-renderer h2,
+.markdown-renderer h3,
+.markdown-renderer h4,
+.markdown-renderer h5,
+.markdown-renderer h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+}
+
+.dark .markdown-renderer h1,
+.dark .markdown-renderer h2,
+.dark .markdown-renderer h3,
+.dark .markdown-renderer h4,
+.dark .markdown-renderer h5,
+.dark .markdown-renderer h6 {
+  color: #F9FAFB;
+}
+
+.markdown-renderer a {
+  color: #4F46E5;
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+}
+
+.dark .markdown-renderer a {
+  color: #818CF8;
+}
+
+.markdown-renderer a:hover {
+  text-decoration: underline;
+  color: #6366F1;
+}
+
+.dark .markdown-renderer a:hover {
+  color: #A5B4FC;
+}
+
+.markdown-renderer ul,
+.markdown-renderer ol {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.markdown-renderer blockquote {
+  border-left: 4px solid #E5E7EB;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+  color: #4B5563;
+}
+
+.dark .markdown-renderer blockquote {
+  border-left-color: #4B5563;
+  color: #9CA3AF;
+}
+
+.markdown-renderer hr {
+  border: 0;
+  border-top: 1px solid #E5E7EB;
+  margin: 1.5rem 0;
+}
+
+.dark .markdown-renderer hr {
+  border-top-color: #374151;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 复制成功提示 */
+.copy-success-tooltip {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #10B981;
+  color: white;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 50;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; transform: translateY(10px); }
+  10%, 90% { opacity: 1; transform: translateY(0); }
 }
 </style> 

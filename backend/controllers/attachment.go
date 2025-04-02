@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -10,7 +11,6 @@ import (
 	"time"
 	
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	
 	"cyi-note/backend/config"
 	"cyi-note/backend/models"
@@ -69,54 +69,50 @@ func UploadAttachment(c *gin.Context) {
 		return
 	}
 	
-	// 使用原始文件名或从表单获取文件名
-	originalFilename := file.Filename
-	
-	// 生成文件存储路径
-	userUploadDir := filepath.Join(uploadBaseDir, strconv.FormatUint(uint64(userID.(uint)), 10))
-	if err := os.MkdirAll(userUploadDir, 0755); err != nil {
-		utils.ServerErrorResponse(c, "创建上传目录失败")
-		return
-	}
-	
-	// 生成唯一的文件标识符，但保留原始文件名部分
-	fileExt := filepath.Ext(originalFilename)
-	baseName := originalFilename[:len(originalFilename)-len(fileExt)]
-	// 使用时间戳和随机UUID确保唯一性，但保留原始文件名部分
-	uniqueID := fmt.Sprintf("%d_%s", time.Now().UnixNano(), uuid.New().String()[:8])
-	// 安全处理文件名，移除可能有问题的字符
-	safeBaseName := utils.SanitizeFilename(baseName)
-	// 构建最终存储的文件名，格式为：原文件名_唯一标识符.扩展名
-	fileName := fmt.Sprintf("%s_%s%s", safeBaseName, uniqueID, fileExt)
-	filePath := filepath.Join(userUploadDir, fileName)
-	
-	// 保存文件
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		utils.ServerErrorResponse(c, "保存文件失败")
-		return
-	}
-
-	// 计算相对路径
-	relFilePath, err := filepath.Rel(uploadBaseDir, filePath)
+	// 打开上传的文件
+	src, err := file.Open()
 	if err != nil {
-		relFilePath = filePath // 如果计算相对路径失败，使用完整路径
+		utils.ServerErrorResponse(c, "打开上传文件失败")
+		return
 	}
-	storedFilePath := filepath.Join(uploadBaseDir, relFilePath)
+	defer src.Close()
 	
-	// 创建附件记录
-	attachment := models.Attachment{
-		NoteID:    uint(noteID),
-		Filename:  originalFilename, // 存储原始文件名，用于下载时显示
-		Filepath:  storedFilePath,   // 存储实际文件路径
-		Filesize:  file.Size,
-		Filetype:  file.Header.Get("Content-Type"),
-		CreatedAt: time.Now(),
+	// 创建临时文件
+	tempFilePath := filepath.Join(os.TempDir(), fmt.Sprintf("upload_%d", time.Now().UnixNano()))
+	tempFile, err := os.Create(tempFilePath)
+	if err != nil {
+		utils.ServerErrorResponse(c, "创建临时文件失败")
+		return
+	}
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempFilePath) // 清理临时文件
+	}()
+	
+	// 将上传文件内容复制到临时文件
+	if _, err = io.Copy(tempFile, src); err != nil {
+		utils.ServerErrorResponse(c, "保存上传文件失败")
+		return
 	}
 	
-	if err := models.CreateAttachment(&attachment); err != nil {
-		// 如果创建附件记录失败，删除已上传的文件
-		os.Remove(filePath)
-		utils.ServerErrorResponse(c, "创建附件记录失败")
+	// 重置文件指针到文件开始
+	if _, err = tempFile.Seek(0, 0); err != nil {
+		utils.ServerErrorResponse(c, "重置文件指针失败")
+		return
+	}
+	
+	// 使用SaveFile函数保存附件
+	attachment, err := models.SaveFile(
+		tempFile,
+		file.Filename,
+		uint(noteID),
+		file.Header.Get("Content-Type"),
+		userID.(uint),
+		false, // 非临时附件
+	)
+	
+	if err != nil {
+		utils.ServerErrorResponse(c, "创建附件记录失败: " + err.Error())
 		return
 	}
 	
@@ -216,10 +212,19 @@ func DeleteAttachment(c *gin.Context) {
 	userID, _ := c.Get("userID")
 	
 	// 检查附件所属的笔记是否属于当前用户
-	note, err := models.GetNoteByID(attachment.NoteID)
-	if err != nil || note.UserID != userID.(uint) {
-		utils.ForbiddenResponse(c, "无权删除此附件")
-		return
+	if attachment.NoteID == nil {
+		// 如果是临时附件，检查用户ID
+		if attachment.UserID != userID.(uint) {
+			utils.ForbiddenResponse(c, "无权删除此附件")
+			return
+		}
+	} else {
+		// 如果是关联到笔记的附件，检查笔记所有权
+		note, err := models.GetNoteByID(*attachment.NoteID)
+		if err != nil || note.UserID != userID.(uint) {
+			utils.ForbiddenResponse(c, "无权删除此附件")
+			return
+		}
 	}
 	
 	// 删除文件
@@ -298,4 +303,145 @@ func GetAttachmentsByDate(c *gin.Context) {
 		"page": page,
 		"pageSize": pageSize,
 	}, "获取资源库文件成功")
+}
+
+// UploadTempAttachment 上传临时附件
+func UploadTempAttachment(c *gin.Context) {
+	// 获取当前用户ID
+	userID, _ := c.Get("userID")
+	
+	// 获取上传的文件
+	file, err := c.FormFile("file")
+	if err != nil {
+		utils.BadRequestResponse(c, "获取上传文件失败")
+		return
+	}
+	
+	// 打开上传的文件
+	src, err := file.Open()
+	if err != nil {
+		utils.ServerErrorResponse(c, "打开上传文件失败")
+		return
+	}
+	defer src.Close()
+	
+	// 创建临时文件
+	tempFilePath := filepath.Join(os.TempDir(), fmt.Sprintf("upload_%d", time.Now().UnixNano()))
+	tempFile, err := os.Create(tempFilePath)
+	if err != nil {
+		utils.ServerErrorResponse(c, "创建临时文件失败")
+		return
+	}
+	defer func() {
+		tempFile.Close()
+		os.Remove(tempFilePath) // 清理临时文件
+	}()
+	
+	// 将上传文件内容复制到临时文件
+	if _, err = io.Copy(tempFile, src); err != nil {
+		utils.ServerErrorResponse(c, "保存上传文件失败")
+		return
+	}
+	
+	// 重置文件指针到文件开始
+	if _, err = tempFile.Seek(0, 0); err != nil {
+		utils.ServerErrorResponse(c, "重置文件指针失败")
+		return
+	}
+	
+	// 使用SaveFile函数保存临时附件
+	// noteID为0（无关联笔记），isTemp为true（标记为临时附件）
+	attachment, err := models.SaveFile(
+		tempFile,
+		file.Filename,
+		0,                      // noteID为0表示无关联笔记
+		file.Header.Get("Content-Type"),
+		userID.(uint),          // 用户ID
+		true,                   // 是临时附件
+	)
+	
+	if err != nil {
+		utils.ServerErrorResponse(c, "创建临时附件记录失败: " + err.Error())
+		return
+	}
+	
+	// 设置临时文件URL
+	temporaryURL := "/api/attachments/" + strconv.FormatUint(uint64(attachment.ID), 10)
+	
+	// 返回临时附件信息
+	utils.CreatedResponse(c, gin.H{
+		"id": attachment.ID,
+		"url": temporaryURL,
+		"filename": attachment.Filename,
+		"filetype": attachment.Filetype,
+		"filesize": attachment.Filesize,
+		"success": true, // 添加success字段以便前端识别
+	}, "临时附件上传成功")
+}
+
+// AssociateTempAttachment 将临时附件关联到笔记
+func AssociateTempAttachment(c *gin.Context) {
+	// 获取临时附件ID
+	tempAttachmentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.BadRequestResponse(c, "无效的临时附件ID")
+		return
+	}
+	
+	// 绑定JSON参数
+	var input struct {
+		NoteID uint `json:"noteId" binding:"required"`
+	}
+	
+	if err := c.ShouldBindJSON(&input); err != nil {
+		utils.BadRequestResponse(c, "无效的请求参数")
+		return
+	}
+	
+	// 获取当前用户ID
+	userID, _ := c.Get("userID")
+	
+	// 检查笔记是否存在且属于当前用户
+	note, err := models.GetNoteByID(input.NoteID)
+	if err != nil {
+		utils.NotFoundResponse(c, "笔记未找到")
+		return
+	}
+	
+	if note.UserID != userID.(uint) {
+		utils.ForbiddenResponse(c, "无权为此笔记关联附件")
+		return
+	}
+	
+	// 获取临时附件
+	attachment, err := models.GetAttachmentByID(uint(tempAttachmentID))
+	if err != nil {
+		utils.NotFoundResponse(c, "临时附件未找到")
+		return
+	}
+	
+	// 检查附件是否是临时的且属于当前用户
+	if !attachment.IsTemp || attachment.UserID != userID.(uint) {
+		utils.ForbiddenResponse(c, "无权关联此临时附件")
+		return
+	}
+	
+	// 关联临时附件到笔记
+	noteID := input.NoteID
+	attachment.NoteID = &noteID // 使用指针
+	attachment.IsTemp = false   // 不再是临时附件
+	
+	if err := models.UpdateAttachment(attachment); err != nil {
+		utils.ServerErrorResponse(c, "关联临时附件失败")
+		return
+	}
+	
+	// 返回关联后的附件信息
+	utils.OkResponse(c, gin.H{
+		"id": attachment.ID,
+		"url": "/api/attachments/" + strconv.FormatUint(uint64(attachment.ID), 10),
+		"filename": attachment.Filename,
+		"noteId": attachment.NoteID,
+		"success": true,
+	}, "临时附件已关联到笔记")
 } 
